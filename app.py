@@ -896,6 +896,161 @@ def delete_saved_topic(publication, index):
 # Routes - Google Docs Export
 # ===================
 
+import re
+from html.parser import HTMLParser
+
+class HTMLToDocsParser(HTMLParser):
+    """Parse HTML and convert to Google Docs formatting requests"""
+
+    def __init__(self):
+        super().__init__()
+        self.text = ""
+        self.formatting_ranges = []
+        self.current_pos = 0
+        self.tag_stack = []
+        self.link_url = None
+
+    def handle_starttag(self, tag, attrs):
+        attrs_dict = dict(attrs)
+        if tag in ['strong', 'b']:
+            self.tag_stack.append(('bold', len(self.text)))
+        elif tag in ['em', 'i']:
+            self.tag_stack.append(('italic', len(self.text)))
+        elif tag == 'u':
+            self.tag_stack.append(('underline', len(self.text)))
+        elif tag == 'a':
+            self.link_url = attrs_dict.get('href', '')
+            self.tag_stack.append(('link', len(self.text)))
+        elif tag == 'h2':
+            self.tag_stack.append(('heading2', len(self.text)))
+        elif tag == 'h3':
+            self.tag_stack.append(('heading3', len(self.text)))
+        elif tag == 'br':
+            self.text += '\n'
+        elif tag == 'p':
+            if self.text and not self.text.endswith('\n'):
+                self.text += '\n'
+        elif tag == 'blockquote':
+            self.tag_stack.append(('blockquote', len(self.text)))
+
+    def handle_endtag(self, tag):
+        if tag in ['strong', 'b']:
+            self._close_tag('bold')
+        elif tag in ['em', 'i']:
+            self._close_tag('italic')
+        elif tag == 'u':
+            self._close_tag('underline')
+        elif tag == 'a':
+            self._close_tag('link')
+            self.link_url = None
+        elif tag == 'h2':
+            self._close_tag('heading2')
+            if not self.text.endswith('\n'):
+                self.text += '\n'
+        elif tag == 'h3':
+            self._close_tag('heading3')
+            if not self.text.endswith('\n'):
+                self.text += '\n'
+        elif tag in ['p', 'div']:
+            if not self.text.endswith('\n'):
+                self.text += '\n'
+        elif tag == 'blockquote':
+            self._close_tag('blockquote')
+            if not self.text.endswith('\n'):
+                self.text += '\n'
+
+    def _close_tag(self, tag_type):
+        for i in range(len(self.tag_stack) - 1, -1, -1):
+            if self.tag_stack[i][0] == tag_type:
+                _, start = self.tag_stack.pop(i)
+                end = len(self.text)
+                if end > start:
+                    self.formatting_ranges.append({
+                        'type': tag_type,
+                        'start': start,
+                        'end': end,
+                        'url': self.link_url if tag_type == 'link' else None
+                    })
+                break
+
+    def handle_data(self, data):
+        self.text += data
+
+    def get_docs_requests(self, start_index=1):
+        """Convert formatting ranges to Google Docs API requests"""
+        requests = []
+
+        for fmt in self.formatting_ranges:
+            start = start_index + fmt['start']
+            end = start_index + fmt['end']
+
+            if fmt['type'] == 'bold':
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start, 'endIndex': end},
+                        'textStyle': {'bold': True},
+                        'fields': 'bold'
+                    }
+                })
+            elif fmt['type'] == 'italic':
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start, 'endIndex': end},
+                        'textStyle': {'italic': True},
+                        'fields': 'italic'
+                    }
+                })
+            elif fmt['type'] == 'underline':
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start, 'endIndex': end},
+                        'textStyle': {'underline': True},
+                        'fields': 'underline'
+                    }
+                })
+            elif fmt['type'] == 'link' and fmt['url']:
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start, 'endIndex': end},
+                        'textStyle': {
+                            'link': {'url': fmt['url']},
+                            'foregroundColor': {'color': {'rgbColor': {'red': 0, 'green': 0.5, 'blue': 0.5}}}
+                        },
+                        'fields': 'link,foregroundColor'
+                    }
+                })
+            elif fmt['type'] == 'heading2':
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start, 'endIndex': end},
+                        'textStyle': {'bold': True, 'fontSize': {'magnitude': 16, 'unit': 'PT'}},
+                        'fields': 'bold,fontSize'
+                    }
+                })
+            elif fmt['type'] == 'heading3':
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start, 'endIndex': end},
+                        'textStyle': {'bold': True, 'fontSize': {'magnitude': 14, 'unit': 'PT'}},
+                        'fields': 'bold,fontSize'
+                    }
+                })
+
+        return requests
+
+def parse_html_for_docs(html_content):
+    """Parse HTML content and return text + formatting requests"""
+    if not html_content:
+        return None, []
+
+    parser = HTMLToDocsParser()
+    try:
+        parser.feed(html_content)
+        return parser.text, parser
+    except Exception as e:
+        print(f"HTML parsing error: {e}")
+        return None, None
+
 def get_pub_display_name(pub_key):
     """Get display name for publication"""
     names = {
@@ -1007,12 +1162,13 @@ def export_transcription():
 
 @app.route('/api/export-to-docs', methods=['POST'])
 def export_to_docs():
-    """Export article to Google Docs"""
+    """Export article to Google Docs with formatting preserved"""
     data = request.json
     publication = data.get('publication')
     month = data.get('month')
     year = data.get('year', datetime.now().year)
     article = data.get('article')
+    article_html = data.get('article_html')  # HTML version with formatting
     is_final = data.get('is_final', False)
 
     # Format title: Year Month Publication Draft/Final
@@ -1057,12 +1213,22 @@ def export_to_docs():
         ).execute()
         doc_id = doc.get('id')
 
+        # Parse HTML for formatting if available
+        text_content = article
+        formatting_requests = []
+
+        if article_html:
+            parsed_text, parser = parse_html_for_docs(article_html)
+            if parsed_text and parser:
+                text_content = parsed_text
+                formatting_requests = parser.get_docs_requests(start_index=1)
+
         # Add content to document
         requests_list = [
             {
                 'insertText': {
                     'location': {'index': 1},
-                    'text': article
+                    'text': text_content
                 }
             }
         ]
@@ -1071,6 +1237,17 @@ def export_to_docs():
             documentId=doc_id,
             body={'requests': requests_list}
         ).execute()
+
+        # Apply formatting if available
+        if formatting_requests:
+            try:
+                docs_service.documents().batchUpdate(
+                    documentId=doc_id,
+                    body={'requests': formatting_requests}
+                ).execute()
+                print(f"[API] Applied {len(formatting_requests)} formatting requests")
+            except Exception as fmt_err:
+                print(f"[API] Formatting error (continuing): {fmt_err}")
 
         # Make document accessible (supports Shared Drives)
         drive_service.permissions().create(
@@ -1086,7 +1263,8 @@ def export_to_docs():
             'doc_id': doc_id,
             'doc_url': doc_url,
             'title': title,
-            'folder': folder_type
+            'folder': folder_type,
+            'formatting_applied': len(formatting_requests) > 0
         })
 
     except Exception as e:
