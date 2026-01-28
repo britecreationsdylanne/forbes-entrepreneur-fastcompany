@@ -758,6 +758,97 @@ def delete_draft(draft_id):
 # Routes - Google Docs Export
 # ===================
 
+def get_pub_display_name(pub_key):
+    """Get display name for publication"""
+    names = {
+        'forbes': 'Forbes',
+        'entrepreneur': 'Entrepreneur',
+        'fastcompany': 'Fast Company'
+    }
+    return names.get(pub_key.lower(), pub_key)
+
+def format_doc_title(year, month, publication, doc_type):
+    """Format document title: Year Month Publication Type"""
+    pub_name = get_pub_display_name(publication)
+    return f"{year} {month} {pub_name} {doc_type}"
+
+@app.route('/api/export-transcription', methods=['POST'])
+def export_transcription():
+    """Export transcription to Google Docs"""
+    data = request.json
+    publication = data.get('publication')
+    month = data.get('month')
+    year = data.get('year', datetime.now().year)
+    transcription = data.get('transcription')
+    topic = data.get('topic', {})
+
+    if not transcription:
+        return jsonify({'error': 'No transcription provided'}), 400
+
+    try:
+        docs_service, drive_service = get_google_docs_service()
+
+        # Use drafts folder for transcriptions
+        pub_key = publication.lower().replace(' ', '')
+        folder_id = FOLDER_IDS.get(pub_key, {}).get('drafts')
+
+        if not folder_id:
+            return jsonify({'error': 'Folder ID not configured'}), 400
+
+        # Format title: Year Month Publication Transcribed Audio
+        title = format_doc_title(year, month, publication, 'Transcribed Audio')
+
+        # Build document content
+        content = f"TOPIC: {topic.get('headline', 'Untitled')}\n\n"
+        content += f"ANGLE: {topic.get('angle', '')}\n\n"
+        content += "=" * 50 + "\n"
+        content += "TRANSCRIPTION\n"
+        content += "=" * 50 + "\n\n"
+        content += transcription
+
+        # Create the document
+        doc_metadata = {
+            'name': title,
+            'mimeType': 'application/vnd.google-apps.document',
+            'parents': [folder_id]
+        }
+
+        doc = drive_service.files().create(body=doc_metadata).execute()
+        doc_id = doc.get('id')
+
+        # Add content to document
+        requests_list = [
+            {
+                'insertText': {
+                    'location': {'index': 1},
+                    'text': content
+                }
+            }
+        ]
+
+        docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': requests_list}
+        ).execute()
+
+        # Make document accessible
+        drive_service.permissions().create(
+            fileId=doc_id,
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute()
+
+        doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
+
+        return jsonify({
+            'success': True,
+            'doc_id': doc_id,
+            'doc_url': doc_url,
+            'title': title
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/export-to-docs', methods=['POST'])
 def export_to_docs():
     """Export article to Google Docs"""
@@ -766,8 +857,11 @@ def export_to_docs():
     month = data.get('month')
     year = data.get('year', datetime.now().year)
     article = data.get('article')
-    title = data.get('title', f"{publication} - {month} {year}")
     is_final = data.get('is_final', False)
+
+    # Format title: Year Month Publication Draft/Final
+    doc_type = 'Final' if is_final else 'Draft'
+    title = format_doc_title(year, month, publication, doc_type)
 
     try:
         docs_service, drive_service = get_google_docs_service()

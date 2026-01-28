@@ -837,7 +837,11 @@
             <div id="transcriptionContainer" style="display: none;">
                 <h3>Transcription</h3>
                 <div class="transcription-box" id="transcriptionBox"></div>
-                <button class="btn btn-outline" id="editTranscription" style="margin-top: 10px;">✏️ Edit Transcription</button>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-outline" id="editTranscription">Edit Transcription</button>
+                    <button class="btn btn-secondary" id="exportTranscription">Export to Google Docs</button>
+                </div>
+                <div id="transcriptionExportResult" style="display: none; margin-top: 10px;"></div>
             </div>
 
             <div class="btn-group">
@@ -1471,12 +1475,39 @@
                 box.contentEditable = 'false';
                 box.style.border = 'none';
                 state.transcription = box.textContent;
-                document.getElementById('editTranscription').textContent = '✏️ Edit Transcription';
+                document.getElementById('editTranscription').textContent = 'Edit Transcription';
             } else {
                 box.contentEditable = 'true';
                 box.style.border = '2px solid var(--primary)';
                 box.focus();
-                document.getElementById('editTranscription').textContent = '💾 Save Changes';
+                document.getElementById('editTranscription').textContent = 'Save Changes';
+            }
+        });
+
+        document.getElementById('exportTranscription').addEventListener('click', async () => {
+            const btn = document.getElementById('exportTranscription');
+            const resultDiv = document.getElementById('transcriptionExportResult');
+
+            btn.disabled = true;
+            btn.textContent = 'Exporting...';
+
+            const result = await apiCall('/export-transcription', 'POST', {
+                publication: state.publication,
+                month: state.month,
+                year: state.year,
+                transcription: state.transcription,
+                topic: state.selectedTopic
+            });
+
+            btn.disabled = false;
+            btn.textContent = 'Export to Google Docs';
+
+            if (result.success) {
+                resultDiv.innerHTML = `<div class="alert alert-success">Transcription exported: <a href="${result.doc_url}" target="_blank">${result.title}</a></div>`;
+                resultDiv.style.display = 'block';
+            } else {
+                resultDiv.innerHTML = `<div class="alert alert-error">Export failed: ${result.error}</div>`;
+                resultDiv.style.display = 'block';
             }
         });
 
