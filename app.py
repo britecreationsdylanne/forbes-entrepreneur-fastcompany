@@ -799,12 +799,12 @@ def delete_draft(draft_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # ===================
-# Routes - Saved Topics (GCS)
+# Routes - Saved Topics (GCS) - Organized by Publication
 # ===================
 
-@app.route('/api/saved-topics', methods=['GET'])
-def list_saved_topics():
-    """List all saved topics from GCS"""
+@app.route('/api/saved-topics/<publication>', methods=['GET'])
+def list_saved_topics(publication):
+    """List saved topics for a specific publication from GCS"""
     if not gcs_client:
         return jsonify({'success': True, 'topics': []})
 
@@ -815,15 +815,17 @@ def list_saved_topics():
         if not blob.exists():
             return jsonify({'success': True, 'topics': []})
 
-        topics = json.loads(blob.download_as_text())
-        return jsonify({'success': True, 'topics': topics})
+        all_topics = json.loads(blob.download_as_text())
+        # Return topics for specific publication
+        pub_topics = all_topics.get(publication.lower(), [])
+        return jsonify({'success': True, 'topics': pub_topics})
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e), 'topics': []})
 
-@app.route('/api/saved-topics', methods=['POST'])
-def save_topic():
-    """Save a topic to the shared bank"""
+@app.route('/api/saved-topics/<publication>', methods=['POST'])
+def save_topic(publication):
+    """Save a topic for a specific publication"""
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
 
@@ -839,29 +841,35 @@ def save_topic():
         bucket = gcs_client.bucket(GCS_BUCKET_NAME)
         blob = bucket.blob(SAVED_TOPICS_BLOB)
 
-        topics = []
+        # Load existing topics (organized by publication)
+        all_topics = {}
         if blob.exists():
-            topics = json.loads(blob.download_as_text())
+            all_topics = json.loads(blob.download_as_text())
+
+        pub_key = publication.lower()
+        if pub_key not in all_topics:
+            all_topics[pub_key] = []
 
         # Check if already saved (by headline)
-        if any(t.get('headline') == topic.get('headline') for t in topics):
+        if any(t.get('headline') == topic.get('headline') for t in all_topics[pub_key]):
             return jsonify({'success': False, 'error': 'Topic already saved'})
 
         # Add metadata
         topic['savedAt'] = datetime.now().isoformat()
         topic['savedBy'] = user_email
+        topic['publication'] = pub_key
 
-        topics.append(topic)
-        blob.upload_from_string(json.dumps(topics, indent=2), content_type='application/json')
+        all_topics[pub_key].append(topic)
+        blob.upload_from_string(json.dumps(all_topics, indent=2), content_type='application/json')
 
         return jsonify({'success': True, 'topic': topic})
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/saved-topics/<int:index>', methods=['DELETE'])
-def delete_saved_topic(index):
-    """Delete a saved topic by index"""
+@app.route('/api/saved-topics/<publication>/<int:index>', methods=['DELETE'])
+def delete_saved_topic(publication, index):
+    """Delete a saved topic by publication and index"""
     if not gcs_client:
         return jsonify({'success': True})
 
@@ -872,11 +880,12 @@ def delete_saved_topic(index):
         if not blob.exists():
             return jsonify({'success': True})
 
-        topics = json.loads(blob.download_as_text())
+        all_topics = json.loads(blob.download_as_text())
+        pub_key = publication.lower()
 
-        if 0 <= index < len(topics):
-            topics.pop(index)
-            blob.upload_from_string(json.dumps(topics, indent=2), content_type='application/json')
+        if pub_key in all_topics and 0 <= index < len(all_topics[pub_key]):
+            all_topics[pub_key].pop(index)
+            blob.upload_from_string(json.dumps(all_topics, indent=2), content_type='application/json')
 
         return jsonify({'success': True})
 

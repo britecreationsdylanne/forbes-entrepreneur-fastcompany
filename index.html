@@ -945,7 +945,7 @@
             <span class="user-name" id="userName"></span>
         </div>
         <div class="saved-topics-panel" id="savedTopicsPanel">
-            <h4>📌 Saved Topics Bank</h4>
+            <h4>📌 <span id="savedTopicsPubName">Saved Topics</span></h4>
             <div id="savedTopicsList">No saved topics yet</div>
         </div>
     </header>
@@ -1288,18 +1288,24 @@
         };
 
         // ===================
-        // Saved Topics Management (GCS API)
+        // Saved Topics Management (GCS API) - Per Publication
         // ===================
         let savedTopics = [];
 
         async function loadSavedTopics() {
+            if (!state.publication) {
+                savedTopics = [];
+                updateSavedTopicsCount();
+                return;
+            }
             try {
-                const result = await apiCall('/saved-topics');
+                const result = await apiCall(`/saved-topics/${state.publication}`);
                 if (result.success && result.topics) {
                     savedTopics = result.topics;
                 }
             } catch (e) {
                 console.error('Error loading saved topics:', e);
+                savedTopics = [];
             }
             updateSavedTopicsCount();
         }
@@ -1320,9 +1326,8 @@
                 return false;
             }
             try {
-                const result = await apiCall('/saved-topics', 'POST', {
+                const result = await apiCall(`/saved-topics/${state.publication}`, 'POST', {
                     ...topic,
-                    publication: state.publication,
                     month: state.month
                 });
                 if (result.success) {
@@ -1338,7 +1343,7 @@
 
         async function removeSavedTopic(index) {
             try {
-                const result = await apiCall(`/saved-topics/${index}`, 'DELETE');
+                const result = await apiCall(`/saved-topics/${state.publication}/${index}`, 'DELETE');
                 if (result.success) {
                     savedTopics.splice(index, 1);
                     updateSavedTopicsCount();
@@ -1369,8 +1374,13 @@
 
         function renderSavedTopics() {
             const container = document.getElementById('savedTopicsList');
+            const pubName = state.publication ? state.publication.charAt(0).toUpperCase() + state.publication.slice(1) : '';
+
+            // Update header with publication name
+            document.getElementById('savedTopicsPubName').textContent = `Saved ${pubName} Topics`;
+
             if (savedTopics.length === 0) {
-                container.innerHTML = '<p style="color: #854d0e; font-size: 13px;">No saved topics yet. Click 📌 on any topic to save it for later.</p>';
+                container.innerHTML = `<p style="color: #854d0e; font-size: 13px;">No saved ${pubName} topics yet. Click 📌 on any topic to save it for later.</p>`;
                 return;
             }
 
@@ -1380,7 +1390,6 @@
                     <h5>${topic.headline}</h5>
                     <p>${topic.angle || ''}</p>
                     <p style="color: #facc15; font-size: 11px; margin-top: 4px;">
-                        ${topic.publication ? topic.publication.charAt(0).toUpperCase() + topic.publication.slice(1) : ''}
                         ${topic.month || ''}
                         ${topic.savedBy ? '• ' + topic.savedBy.split('@')[0] : ''}
                     </p>
@@ -1429,6 +1438,15 @@
                 saveBar.classList.remove('visible');
             } else {
                 saveBar.classList.add('visible');
+            }
+
+            // Show/hide saved topics toggle (only on step 2)
+            const savedTopicsToggle = document.getElementById('savedTopicsToggle');
+            if (stepNum === 2) {
+                savedTopicsToggle.style.display = 'flex';
+            } else {
+                savedTopicsToggle.style.display = 'none';
+                document.getElementById('savedTopicsPanel').classList.remove('visible');
             }
 
             state.currentStep = stepNum;
@@ -1700,10 +1718,11 @@
             checkStep1Complete();
         });
 
-        document.getElementById('step1Next').addEventListener('click', () => {
+        document.getElementById('step1Next').addEventListener('click', async () => {
             document.getElementById('step2Info').textContent =
                 `Generating topics for ${state.publication.charAt(0).toUpperCase() + state.publication.slice(1)} - ${state.month} ${state.year}`;
             loadArchive();
+            await loadSavedTopics(); // Load saved topics for this publication
             showPanel(2);
         });
 
@@ -2302,7 +2321,8 @@
         // Initialize
         // ===================
         loadDrafts();
-        loadSavedTopics();
+        // Hide saved topics toggle initially (shown on step 2 only)
+        document.getElementById('savedTopicsToggle').style.display = 'none';
 
         // Initialize recipient lists
         renderRecipients('draft');
