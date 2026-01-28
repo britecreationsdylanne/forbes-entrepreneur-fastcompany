@@ -1,0 +1,214 @@
+{
+  "publication": "Forbes",
+  "publication_full_name": "Forbes Business Council",
+  "author": "Dustin Lemick",
+  "author_title": "founder and CEO of BriteCo",
+  "author_tagline": "an innovative insurance technology company transforming the retail jewelry insurance experience",
+
+  "specifications": {
+    "word_count": {
+      "min": 750,
+      "max": 1100,
+      "typical": 850
+    },
+    "character_count": {
+      "min": 4500,
+      "max": 6500,
+      "typical": 5100
+    }
+  },
+
+  "article_formats": [
+    {
+      "type": "philosophical",
+      "description": "Reflective thought leadership exploring nuanced business concepts",
+      "word_count": "750-850",
+      "structure": {
+        "intro": "Hook with famous quote, fable, or common saying",
+        "body": "3 themed sections with phrase-based subheadings",
+        "conclusion": "Nuanced wrap-up paragraph (no explicit header)"
+      },
+      "subheading_style": "Idioms, phrases, or statements (sentence case)",
+      "examples": ["Competitor Focus", "Growth vs Stability"]
+    },
+    {
+      "type": "tactical",
+      "description": "Actionable how-to guides with numbered steps",
+      "word_count": "1000-1100",
+      "structure": {
+        "intro": "Context setting with personal experience reference",
+        "body": "Numbered list (1. 2. 3. etc.) with detailed explanations",
+        "conclusion": "Final Thoughts section"
+      },
+      "subheading_style": "Numbered statements (1. Action phrase.)",
+      "examples": ["Cross-Department Collaboration", "5 Tips format"]
+    },
+    {
+      "type": "personal_narrative",
+      "description": "Vulnerable founder journey sharing lessons learned",
+      "word_count": "900-1000",
+      "structure": {
+        "intro": "Personal admission or struggle",
+        "body": "Multiple short sections (5-7) with phrase subheadings",
+        "conclusion": "Reassuring message or growth mindset wrap-up"
+      },
+      "subheading_style": "Short phrases describing journey stages",
+      "examples": ["Burnout Management", "Family Business"]
+    },
+    {
+      "type": "educational_guide",
+      "description": "Phase-based instruction for business stages",
+      "word_count": "850-950",
+      "structure": {
+        "intro": "Relatable founder struggle",
+        "body": "Phase-based sections (Startup Phase, Growth Phase, etc.)",
+        "conclusion": "Overview section summarizing key points"
+      },
+      "subheading_style": "Phase or stage names",
+      "examples": ["Startup to Growth Lessons"]
+    }
+  ],
+
+  "intro_styles": [
+    {
+      "type": "famous_quote",
+      "description": "Open with quote from business leader or public figure",
+      "examples": ["Mark Zuckerberg's 'move fast and break things'", "Steve Jobs on competition"]
+    },
+    {
+      "type": "classic_fable",
+      "description": "Reference well-known story or fable",
+      "examples": ["Tortoise and the Hare", "Goldilocks metaphor"]
+    },
+    {
+      "type": "common_saying",
+      "description": "Start with familiar adage, then validate or challenge it",
+      "examples": ["There's strength in numbers", "There's no 'I' in team"]
+    },
+    {
+      "type": "statistic",
+      "description": "Open with compelling data point (use sparingly)",
+      "examples": ["According to Cornell's research, 77% of new U.S. business ventures..."]
+    },
+    {
+      "type": "personal_admission",
+      "description": "Vulnerable statement about own experience",
+      "examples": ["I admit I wasn't great at managing burnout", "In my time as CEO..."]
+    }
+  ],
+
+  "subheading_patterns": {
+    "style": "Phrase-based, sentence case (NOT all caps)",
+    "characteristics": [
+      "Often idioms or common expressions",
+      "Sometimes wordplay or puns",
+      "Action-oriented but not clickbait",
+      "3-8 words typically"
+    ],
+    "examples": [
+      "There's a very fine line.",
+      "Imitation is the best form of flattery.",
+      "Know when it's time to work together.",
+      "Always brake for customers.",
+      "Pace yourself.",
+      "Find the right balance.",
+      "Learning To Let Go",
+      "Creating Space For The Team"
+    ]
+  },
+
+  "conclusion_styles": [
+    {
+      "type": "final_thoughts",
+      "description": "Explicit 'Final Thoughts' header with summary",
+      "use_with": ["tactical", "educational_guide"]
+    },
+    {
+      "type": "overview",
+      "description": "Explicit 'Overview' header with key takeaways",
+      "use_with": ["educational_guide"]
+    },
+    {
+      "type": "nuanced_wrap",
+      "description": "No header, balanced conclusion acknowledging complexity",
+      "use_with": ["philosophical", "personal_narrative"]
+    }
+  ],
+
+  "tone": {
+    "primary": ["reflective", "advisory", "honest"],
+    "secondary": ["philosophical", "nuanced", "balanced"],
+    "avoid": ["preachy", "absolute statements", "salesy", "overly formal"]
+  },
+
+  "voice": {
+    "person": "first_person",
+    "phrases": [
+      "In my experience",
+      "I've learned that",
+      "I've found that",
+      "At BriteCo, we",
+      "My company",
+      "What I've discovered",
+      "Looking back"
+    ]
+  },
+
+  "briteco_integration": {
+    "frequency": "Woven throughout article (2-4 mentions)",
+    "types": [
+      "Company practices and programs",
+      "Team examples",
+      "Founding story elements",
+      "Industry context (insurance, jewelry)"
+    ],
+    "examples": [
+      "At BriteCo, our underwriting team...",
+      "We have an unlimited vacation policy...",
+      "Our company encourages employees to...",
+      "In my company, we implemented..."
+    ]
+  },
+
+  "required_elements": {
+    "metaphors_or_analogies": true,
+    "personal_experience": true,
+    "balanced_conclusion": true,
+    "briteco_reference": true
+  },
+
+  "optional_elements": {
+    "statistics": "Rare - only when highly relevant",
+    "famous_quotes": "Common in intros",
+    "case_studies": "Other companies occasionally referenced"
+  },
+
+  "avoid": [
+    "Hard statistics throughout (observation-based preferred)",
+    "Black and white conclusions",
+    "Overly prescriptive tone",
+    "Clickbait subheadings",
+    "ALL CAPS formatting",
+    "Competitor bashing",
+    "Political statements",
+    "Personnel news"
+  ],
+
+  "sample_headlines": [
+    "How Much Should You Focus On Competitors To Stay Ahead?",
+    "Why Growth Isn't Just About Speed; It's About Stability",
+    "How To Structure Cross-Department Collaboration",
+    "Navigating Burnout As A Startup Leader: Lessons From The Trenches",
+    "From Family Dynamics To Business Success: How To Succeed As Leader In A Family-Owned Business",
+    "Lessons For First-Time Founders From Startup To Growth Stage",
+    "How Business Leaders Can Audit Their 'Personal Infrastructure'"
+  ],
+
+  "headline_patterns": [
+    "How [Topic] + Question",
+    "Why [Concept] Isn't/Is [Insight]",
+    "How To [Action] + [Benefit]",
+    "[Topic]: Lessons From [Experience]",
+    "From [State A] To [State B]: How To [Achieve]"
+  ]
+}

@@ -1,0 +1,844 @@
+"""
+CEO Article Generator
+Flask application for generating thought leadership articles for Forbes, Entrepreneur, and Fast Company
+"""
+
+import os
+import json
+import uuid
+import base64
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize Flask app
+app = Flask(__name__, static_folder='static')
+CORS(app)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')
+
+# ===================
+# Configuration
+# ===================
+
+CONFIG_DIR = Path(__file__).parent / 'config'
+STYLE_GUIDES_DIR = CONFIG_DIR / 'style_guides'
+DRAFTS_DIR = Path(__file__).parent / 'drafts'
+DRAFTS_DIR.mkdir(exist_ok=True)
+
+# Google Drive Folder IDs
+FOLDER_IDS = {
+    'forbes': {
+        'drafts': os.environ.get('FORBES_DRAFTS_FOLDER_ID', '162rWBuk5KPdE8501nj7g8j0NRnY0QEzq'),
+        'finals': os.environ.get('FORBES_FINALS_FOLDER_ID', '1C1XcfcWMBEtG2hYJIctCc7BmfuoXC0b4')
+    },
+    'entrepreneur': {
+        'drafts': os.environ.get('ENTREPRENEUR_DRAFTS_FOLDER_ID', '1sGwpGc7Hw6irjhgpj_W7-J-t_8AP1wBc'),
+        'finals': os.environ.get('ENTREPRENEUR_FINALS_FOLDER_ID', '1mw-Frun3CNi1_4tw4ADB8un5XJRMKepz')
+    },
+    'fastcompany': {
+        'drafts': os.environ.get('FASTCOMPANY_DRAFTS_FOLDER_ID', '1qUnwSzU9RVXMWhxcO-46MdnDCBsrgYPh'),
+        'finals': os.environ.get('FASTCOMPANY_FINALS_FOLDER_ID', '1WjQiGYnz9qfWbIsUMVxSeHIiOHJdPsHB')
+    }
+}
+
+# Email recipients
+DRAFT_RECIPIENTS = os.environ.get('DRAFT_RECIPIENTS', 'dylanne.crugnale@brite.co').split(',')
+FINAL_RECIPIENTS = os.environ.get('FINAL_RECIPIENTS', 'dylanne.crugnale@brite.co').split(',')
+
+# ===================
+# Helper Functions
+# ===================
+
+def load_style_guide(publication: str) -> dict:
+    """Load style guide JSON for a publication"""
+    filename = f"{publication.lower().replace(' ', '')}_style.json"
+    filepath = STYLE_GUIDES_DIR / filename
+    if filepath.exists():
+        with open(filepath, 'r') as f:
+            return json.load(f)
+    return {}
+
+def load_topic_archive() -> dict:
+    """Load the topic archive"""
+    filepath = CONFIG_DIR / 'topic_archive.json'
+    if filepath.exists():
+        with open(filepath, 'r') as f:
+            return json.load(f)
+    return {}
+
+def get_openai_client():
+    """Get OpenAI client"""
+    from openai import OpenAI
+    return OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+
+def get_anthropic_client():
+    """Get Anthropic client"""
+    from anthropic import Anthropic
+    return Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+
+def get_perplexity_client():
+    """Get Perplexity client (uses OpenAI SDK)"""
+    from openai import OpenAI
+    return OpenAI(
+        api_key=os.environ.get('PERPLEXITY_API_KEY'),
+        base_url="https://api.perplexity.ai"
+    )
+
+def get_google_docs_service():
+    """Get Google Docs API service"""
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+
+    creds_json = os.environ.get('GOOGLE_DOCS_CREDENTIALS')
+    if not creds_json:
+        raise ValueError("GOOGLE_DOCS_CREDENTIALS not set")
+
+    creds_data = json.loads(creds_json)
+    credentials = service_account.Credentials.from_service_account_info(
+        creds_data,
+        scopes=[
+            'https://www.googleapis.com/auth/documents',
+            'https://www.googleapis.com/auth/drive'
+        ]
+    )
+
+    docs_service = build('docs', 'v1', credentials=credentials)
+    drive_service = build('drive', 'v3', credentials=credentials)
+
+    return docs_service, drive_service
+
+# ===================
+# Routes - Static Files
+# ===================
+
+@app.route('/')
+def index():
+    """Serve the main application"""
+    return send_from_directory('.', 'index.html')
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Serve static files"""
+    return send_from_directory('static', filename)
+
+# ===================
+# Routes - Configuration
+# ===================
+
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """Get application configuration"""
+    return jsonify({
+        'publications': [
+            {'id': 'forbes', 'name': 'Forbes', 'full_name': 'Forbes Business Council'},
+            {'id': 'entrepreneur', 'name': 'Entrepreneur', 'full_name': 'Entrepreneur Leadership Network'},
+            {'id': 'fastcompany', 'name': 'Fast Company', 'full_name': 'Fast Company Executive Board'}
+        ],
+        'months': [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ],
+        'current_year': datetime.now().year
+    })
+
+@app.route('/api/style-guide/<publication>', methods=['GET'])
+def get_style_guide(publication):
+    """Get style guide for a publication"""
+    style_guide = load_style_guide(publication)
+    if not style_guide:
+        return jsonify({'error': 'Style guide not found'}), 404
+    return jsonify(style_guide)
+
+@app.route('/api/topic-archive', methods=['GET'])
+def get_topic_archive():
+    """Get the topic archive"""
+    archive = load_topic_archive()
+    return jsonify(archive)
+
+@app.route('/api/topic-archive/<publication>', methods=['GET'])
+def get_publication_archive(publication):
+    """Get topic archive for a specific publication"""
+    archive = load_topic_archive()
+    # Map frontend IDs to archive keys
+    pub_key_map = {
+        'forbes': 'forbes',
+        'entrepreneur': 'entrepreneur',
+        'fastcompany': 'fast_company'
+    }
+    pub_key = pub_key_map.get(publication.lower(), publication.lower())
+    if pub_key in archive:
+        return jsonify(archive[pub_key])
+    return jsonify({'error': 'Publication not found', 'tried_key': pub_key}), 404
+
+# ===================
+# Routes - Topic Research & Generation
+# ===================
+
+@app.route('/api/research-topics', methods=['POST'])
+def research_topics():
+    """Research current trends for topic generation"""
+    data = request.json
+    publication = data.get('publication')
+    month = data.get('month')
+    year = data.get('year', datetime.now().year)
+
+    try:
+        # Use Perplexity for research
+        client = get_perplexity_client()
+
+        # Build research query
+        query = f"""
+        Find current business and leadership trends, news, and topics for {month} {year} that would be relevant for a thought leadership article.
+        Focus on:
+        - Business strategy and leadership
+        - Entrepreneurship and startups
+        - Workplace culture and hiring
+        - Technology and innovation
+        - Economic trends affecting businesses
+
+        Provide 5-7 trending topics with brief descriptions of why they're relevant right now.
+        """
+
+        response = client.chat.completions.create(
+            model="sonar",
+            messages=[
+                {"role": "system", "content": "You are a business trend researcher. Provide current, timely topics for thought leadership articles."},
+                {"role": "user", "content": query}
+            ],
+            max_tokens=1500
+        )
+
+        research_results = response.choices[0].message.content
+
+        return jsonify({
+            'success': True,
+            'research': research_results,
+            'publication': publication,
+            'month': month,
+            'year': year
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate-topics', methods=['POST'])
+def generate_topics():
+    """Generate 10 topic ideas based on research and style guide"""
+    data = request.json
+    publication = data.get('publication')
+    month = data.get('month')
+    year = data.get('year', datetime.now().year)
+    research = data.get('research', '')
+
+    try:
+        # Load style guide and archive
+        style_guide = load_style_guide(publication)
+        archive = load_topic_archive()
+
+        # Get past topics to avoid
+        pub_key_map = {
+            'forbes': 'forbes',
+            'entrepreneur': 'entrepreneur',
+            'fastcompany': 'fast_company'
+        }
+        pub_key = pub_key_map.get(publication.lower(), publication.lower())
+        past_topics = []
+        if pub_key in archive:
+            past_topics = archive[pub_key].get('topics_to_avoid', [])
+
+        # Use Claude for topic generation
+        client = get_anthropic_client()
+
+        prompt = f"""
+        Generate 10 unique topic ideas for a {publication} thought leadership article for {month} {year}.
+
+        PUBLICATION STYLE:
+        - Publication: {style_guide.get('publication_full_name', publication)}
+        - Typical word count: {style_guide.get('specifications', {}).get('word_count', {}).get('typical', 850)} words
+        - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
+        - Author: Dustin Lemick, CEO of BriteCo (jewelry/watch insurance, insurtech)
+
+        HEADLINE PATTERNS TO USE:
+        {json.dumps(style_guide.get('headline_patterns', []), indent=2)}
+
+        CURRENT RESEARCH/TRENDS:
+        {research}
+
+        TOPICS TO AVOID (already written):
+        {', '.join(past_topics)}
+
+        For each topic, provide:
+        1. A headline in the publication's style
+        2. A one-sentence angle/hook
+        3. Why it's timely for {month} {year}
+        4. How Dustin/BriteCo could connect to this topic
+
+        Return as JSON array with 10 objects, each having: headline, angle, timeliness, briteco_connection
+        """
+
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=3000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        # Parse response
+        response_text = response.content[0].text
+
+        # Try to extract JSON from response
+        try:
+            # Find JSON array in response
+            start_idx = response_text.find('[')
+            end_idx = response_text.rfind(']') + 1
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = response_text[start_idx:end_idx]
+                topics = json.loads(json_str)
+            else:
+                topics = []
+        except json.JSONDecodeError:
+            topics = [{"headline": "Error parsing topics", "angle": response_text, "timeliness": "", "briteco_connection": ""}]
+
+        return jsonify({
+            'success': True,
+            'topics': topics,
+            'publication': publication,
+            'month': month,
+            'year': year
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/refine-topic', methods=['POST'])
+def refine_topic():
+    """Refine a custom topic using AI to make it publication-ready"""
+    data = request.json
+    publication = data.get('publication')
+    headline = data.get('headline', '')
+    angle = data.get('angle', '')
+
+    try:
+        # Load style guide
+        style_guide = load_style_guide(publication)
+
+        # Use Claude to refine the topic
+        client = get_anthropic_client()
+
+        prompt = f"""
+        Refine this custom topic idea into a polished {publication} article topic.
+
+        USER'S ROUGH IDEA:
+        Headline: {headline}
+        Description/Angle: {angle}
+
+        PUBLICATION STYLE:
+        - Publication: {style_guide.get('publication_full_name', publication)}
+        - Headline patterns: {json.dumps(style_guide.get('headline_patterns', []), indent=2)}
+        - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
+        - Author: Dustin Lemick, CEO of BriteCo (jewelry/watch insurance, insurtech)
+
+        Please refine this into:
+        1. A polished headline that matches the publication's style and patterns
+        2. A clear, compelling angle (1-2 sentences)
+        3. Why this is timely and relevant
+        4. How Dustin/BriteCo could naturally connect to this topic
+
+        Return as JSON object with: headline, angle, timeliness, briteco_connection
+        """
+
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        # Parse response
+        response_text = response.content[0].text
+
+        # Try to extract JSON from response
+        try:
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}') + 1
+            if start_idx != -1 and end_idx > start_idx:
+                json_str = response_text[start_idx:end_idx]
+                topic = json.loads(json_str)
+            else:
+                topic = {"headline": headline, "angle": angle, "timeliness": "Custom topic", "briteco_connection": ""}
+        except json.JSONDecodeError:
+            topic = {"headline": headline, "angle": angle, "timeliness": "Custom topic", "briteco_connection": ""}
+
+        return jsonify({
+            'success': True,
+            'topic': topic
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===================
+# Routes - Audio Recording & Transcription
+# ===================
+
+@app.route('/api/transcribe', methods=['POST'])
+def transcribe_audio():
+    """Transcribe audio file using Whisper API"""
+    try:
+        # Check if file is in request
+        if 'audio' not in request.files:
+            return jsonify({'error': 'No audio file provided'}), 400
+
+        audio_file = request.files['audio']
+
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as tmp:
+            audio_file.save(tmp.name)
+            tmp_path = tmp.name
+
+        try:
+            # Transcribe with Whisper
+            client = get_openai_client()
+
+            with open(tmp_path, 'rb') as f:
+                transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=f,
+                    response_format="text"
+                )
+
+            return jsonify({
+                'success': True,
+                'transcription': transcript
+            })
+
+        finally:
+            # Clean up temp file
+            os.unlink(tmp_path)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===================
+# Routes - Article Generation
+# ===================
+
+@app.route('/api/generate-article', methods=['POST'])
+def generate_article():
+    """Generate article from transcription using style guide"""
+    data = request.json
+    publication = data.get('publication')
+    month = data.get('month')
+    year = data.get('year', datetime.now().year)
+    topic = data.get('topic', {})
+    transcription = data.get('transcription', '')
+
+    try:
+        # Load style guide
+        style_guide = load_style_guide(publication)
+
+        # Use Claude for article generation
+        client = get_anthropic_client()
+
+        # Build the prompt
+        prompt = f"""
+        Write a thought leadership article for {style_guide.get('publication_full_name', publication)}.
+
+        TOPIC:
+        Headline: {topic.get('headline', 'Untitled')}
+        Angle: {topic.get('angle', '')}
+
+        CEO'S THOUGHTS (from recording transcription):
+        {transcription}
+
+        STYLE REQUIREMENTS:
+        - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 750)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 1000)} words
+        - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
+        - Author voice: First person, as Dustin Lemick, CEO of BriteCo
+
+        SUBHEADING FORMAT:
+        {"ALL CAPS" if publication.lower() == 'fastcompany' else "Sentence case phrases"}
+
+        {"KEY TAKEAWAYS REQUIRED: Include 3 bullet points at the top summarizing main insights" if publication.lower() == 'entrepreneur' else ""}
+
+        STRUCTURE:
+        {json.dumps(style_guide.get('article_formats', [{}])[0].get('structure', {}), indent=2)}
+
+        BRITECO INTEGRATION:
+        - Weave in 2-4 references to BriteCo, Dustin's experience, or the jewelry/insurance industry
+        - Use natural connections, not forced mentions
+
+        SAMPLE SUBHEADINGS FROM THIS PUBLICATION:
+        {json.dumps(style_guide.get('subheading_patterns', {}).get('examples', [])[:5], indent=2)}
+
+        Write the complete article now. Make it engaging, insightful, and true to the CEO's voice from the transcription.
+        """
+
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        article_content = response.content[0].text
+
+        # Count words
+        word_count = len(article_content.split())
+
+        return jsonify({
+            'success': True,
+            'article': article_content,
+            'word_count': word_count,
+            'publication': publication,
+            'topic': topic,
+            'month': month,
+            'year': year
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/rewrite-article', methods=['POST'])
+def rewrite_article():
+    """Rewrite/improve an article section"""
+    data = request.json
+    publication = data.get('publication')
+    article = data.get('article')
+    instructions = data.get('instructions', 'Improve this article')
+
+    try:
+        style_guide = load_style_guide(publication)
+        client = get_anthropic_client()
+
+        prompt = f"""
+        Rewrite/improve this {publication} article based on these instructions:
+
+        INSTRUCTIONS: {instructions}
+
+        CURRENT ARTICLE:
+        {article}
+
+        STYLE REQUIREMENTS:
+        - Maintain the {publication} style and format
+        - Keep subheadings in {"ALL CAPS" if publication.lower() == 'fastcompany' else "sentence case"}
+        - Target word count: {style_guide.get('specifications', {}).get('word_count', {}).get('typical', 850)} words
+
+        Provide the complete rewritten article.
+        """
+
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        return jsonify({
+            'success': True,
+            'article': response.content[0].text,
+            'word_count': len(response.content[0].text.split())
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===================
+# Routes - Draft Management
+# ===================
+
+@app.route('/api/drafts/save', methods=['POST'])
+def save_draft():
+    """Save a draft"""
+    data = request.json
+    draft_id = data.get('draft_id') or str(uuid.uuid4())
+
+    # Check if draft already exists to preserve created_at and created_by
+    existing_draft = {}
+    draft_path = DRAFTS_DIR / f"{draft_id}.json"
+    if draft_path.exists():
+        with open(draft_path, 'r') as f:
+            existing_draft = json.load(f)
+
+    draft = {
+        'id': draft_id,
+        'publication': data.get('publication'),
+        'month': data.get('month'),
+        'year': data.get('year'),
+        'current_step': data.get('current_step', 1),
+        'data': data.get('data', {}),
+        'created_at': existing_draft.get('created_at', datetime.now().isoformat()),
+        'created_by': existing_draft.get('created_by', data.get('created_by', 'Unknown')),
+        'updated_at': datetime.now().isoformat()
+    }
+
+    # Save to file
+    draft_path = DRAFTS_DIR / f"{draft_id}.json"
+    with open(draft_path, 'w') as f:
+        json.dump(draft, f, indent=2)
+
+    return jsonify({
+        'success': True,
+        'draft_id': draft_id,
+        'message': 'Draft saved successfully'
+    })
+
+@app.route('/api/drafts/list', methods=['GET'])
+def list_drafts():
+    """List all drafts"""
+    drafts = []
+    for draft_file in DRAFTS_DIR.glob('*.json'):
+        try:
+            with open(draft_file, 'r') as f:
+                draft = json.load(f)
+                drafts.append({
+                    'id': draft.get('id'),
+                    'publication': draft.get('publication'),
+                    'month': draft.get('month'),
+                    'year': draft.get('year'),
+                    'current_step': draft.get('current_step'),
+                    'title': draft.get('data', {}).get('topic', {}).get('headline', 'Untitled'),
+                    'created_at': draft.get('created_at'),
+                    'created_by': draft.get('created_by', 'Unknown'),
+                    'updated_at': draft.get('updated_at')
+                })
+        except Exception:
+            continue
+
+    # Sort by updated_at descending
+    drafts.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+
+    return jsonify({'drafts': drafts})
+
+@app.route('/api/drafts/<draft_id>', methods=['GET'])
+def get_draft(draft_id):
+    """Get a specific draft"""
+    draft_path = DRAFTS_DIR / f"{draft_id}.json"
+    if not draft_path.exists():
+        return jsonify({'error': 'Draft not found'}), 404
+
+    with open(draft_path, 'r') as f:
+        draft = json.load(f)
+
+    return jsonify(draft)
+
+@app.route('/api/drafts/<draft_id>', methods=['DELETE'])
+def delete_draft(draft_id):
+    """Delete a draft"""
+    draft_path = DRAFTS_DIR / f"{draft_id}.json"
+    if draft_path.exists():
+        draft_path.unlink()
+
+    return jsonify({'success': True, 'message': 'Draft deleted'})
+
+# ===================
+# Routes - Google Docs Export
+# ===================
+
+@app.route('/api/export-to-docs', methods=['POST'])
+def export_to_docs():
+    """Export article to Google Docs"""
+    data = request.json
+    publication = data.get('publication')
+    month = data.get('month')
+    year = data.get('year', datetime.now().year)
+    article = data.get('article')
+    title = data.get('title', f"{publication} - {month} {year}")
+    is_final = data.get('is_final', False)
+
+    try:
+        docs_service, drive_service = get_google_docs_service()
+
+        # Determine folder
+        pub_key = publication.lower().replace(' ', '')
+        folder_type = 'finals' if is_final else 'drafts'
+        folder_id = FOLDER_IDS.get(pub_key, {}).get(folder_type)
+
+        if not folder_id:
+            return jsonify({'error': 'Folder ID not configured'}), 400
+
+        # Create the document
+        doc_metadata = {
+            'name': title,
+            'mimeType': 'application/vnd.google-apps.document',
+            'parents': [folder_id]
+        }
+
+        doc = drive_service.files().create(body=doc_metadata).execute()
+        doc_id = doc.get('id')
+
+        # Add content to document
+        requests_list = [
+            {
+                'insertText': {
+                    'location': {'index': 1},
+                    'text': article
+                }
+            }
+        ]
+
+        docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': requests_list}
+        ).execute()
+
+        # Make document accessible
+        drive_service.permissions().create(
+            fileId=doc_id,
+            body={'type': 'anyone', 'role': 'reader'}
+        ).execute()
+
+        doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
+
+        return jsonify({
+            'success': True,
+            'doc_id': doc_id,
+            'doc_url': doc_url,
+            'title': title,
+            'folder': folder_type
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===================
+# Routes - Email Notifications
+# ===================
+
+@app.route('/api/send-notification', methods=['POST'])
+def send_notification():
+    """Send email notification"""
+    data = request.json
+    notification_type = data.get('type', 'draft')  # 'draft' or 'final'
+    doc_url = data.get('doc_url')
+    publication = data.get('publication')
+    month = data.get('month')
+    year = data.get('year', datetime.now().year)
+    title = data.get('title', 'CEO Article')
+
+    try:
+        import sendgrid
+        from sendgrid.helpers.mail import Mail
+
+        sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+
+        # Determine recipients
+        recipients = FINAL_RECIPIENTS if notification_type == 'final' else DRAFT_RECIPIENTS
+
+        # Build email content
+        if notification_type == 'final':
+            subject = f"[FINAL] {publication} Article Ready: {title}"
+            status_text = "FINAL - Ready for Submission"
+            status_color = "#28a745"
+        else:
+            subject = f"[DRAFT] {publication} Article Ready for Review: {title}"
+            status_text = "DRAFT - Ready for Review"
+            status_color = "#FE8916"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #008181; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }}
+                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }}
+                .status {{ display: inline-block; background: {status_color}; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }}
+                .button {{ display: inline-block; background: #008181; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }}
+                .details {{ background: white; padding: 15px; border-radius: 8px; margin: 20px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1 style="margin: 0;">CEO Article Generator</h1>
+                    <p style="margin: 10px 0 0 0;">BriteCo Thought Leadership</p>
+                </div>
+                <div class="content">
+                    <p class="status">{status_text}</p>
+
+                    <div class="details">
+                        <p><strong>Publication:</strong> {publication}</p>
+                        <p><strong>Month:</strong> {month} {year}</p>
+                        <p><strong>Title:</strong> {title}</p>
+                    </div>
+
+                    <p>{"This article is finalized and ready for submission to " + publication + "." if notification_type == 'final' else "Please review this draft and make any necessary edits."}</p>
+
+                    <a href="{doc_url}" class="button">Open in Google Docs</a>
+
+                    <p style="margin-top: 30px; font-size: 12px; color: #666;">
+                        This email was sent by the CEO Article Generator tool.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Send to each recipient
+        sent_count = 0
+        errors = []
+
+        for recipient in recipients:
+            try:
+                message = Mail(
+                    from_email=(
+                        os.environ.get('SENDGRID_FROM_EMAIL', 'marketing@brite.co'),
+                        os.environ.get('SENDGRID_FROM_NAME', 'BriteCo CEO Articles')
+                    ),
+                    to_emails=recipient.strip(),
+                    subject=subject,
+                    html_content=html_content
+                )
+                response = sg.send(message)
+                if response.status_code in [200, 201, 202]:
+                    sent_count += 1
+                else:
+                    errors.append(f"Failed for {recipient}: status {response.status_code}")
+            except Exception as e:
+                errors.append(f"Failed for {recipient}: {str(e)}")
+
+        return jsonify({
+            'success': True,
+            'sent_count': sent_count,
+            'total_recipients': len(recipients),
+            'errors': errors if errors else None
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ===================
+# Health Check
+# ===================
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'version': '1.0.0'
+    })
+
+# ===================
+# Run Application
+# ===================
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', '1') == '1'
+    app.run(host='0.0.0.0', port=port, debug=debug)

@@ -1,0 +1,230 @@
+{
+  "description": "Archive of all past Dustin Lemick articles by publication. Use to avoid topic repetition and for inspiration.",
+  "last_updated": "2026-01-28",
+
+  "forbes": {
+    "publication": "Forbes Business Council",
+    "total_articles": 7,
+    "articles": [
+      {
+        "date": "2025-12",
+        "title": "How Much Should You Focus On Competitors To Stay Ahead?",
+        "theme": "strategy",
+        "topics": ["competition", "competitive advantage", "market positioning"],
+        "key_concepts": ["Goldilocks balance", "imitation as flattery", "collaboration with competitors"]
+      },
+      {
+        "date": "2025-10",
+        "title": "Why Growth Isn't Just About Speed; It's About Stability",
+        "theme": "growth",
+        "topics": ["scaling", "stability", "sustainable growth"],
+        "key_concepts": ["Tortoise and Hare", "bend but not break", "customer-first growth"]
+      },
+      {
+        "date": "2025-07",
+        "title": "How To Structure Cross-Department Collaboration",
+        "theme": "leadership",
+        "topics": ["team collaboration", "cross-functional teams", "communication"],
+        "key_concepts": ["standup meetings", "job shadowing", "employee recognition"]
+      },
+      {
+        "date": "2025-04",
+        "title": "Navigating Burnout As A Startup Leader: Lessons From The Trenches",
+        "theme": "wellness",
+        "topics": ["burnout", "founder wellness", "self-care"],
+        "key_concepts": ["fundraising stress", "letting go", "finding joy in work"]
+      },
+      {
+        "date": "2025-03",
+        "title": "From Family Dynamics To Business Success: How To Succeed As Leader In A Family-Owned Business",
+        "theme": "entrepreneurship",
+        "topics": ["family business", "trust", "support systems"],
+        "key_concepts": ["family advisors", "spouse involvement", "diversifying perspectives"]
+      },
+      {
+        "date": "2024-08",
+        "title": "Lessons For First-Time Founders From Startup To Growth Stage",
+        "theme": "strategy",
+        "topics": ["startup phases", "growth stage", "founder lessons"],
+        "key_concepts": ["product-market fit", "capital management", "trusting gut"]
+      },
+      {
+        "date": "2024-05",
+        "title": "How Business Leaders Can Audit Their 'Personal Infrastructure'",
+        "theme": "self_development",
+        "topics": ["personal infrastructure", "work-life", "self-audit"],
+        "key_concepts": ["life audit", "support systems", "evolutionary infrastructure"]
+      }
+    ],
+    "themes_covered": ["strategy", "growth", "leadership", "wellness", "entrepreneurship", "self_development"],
+    "topics_to_avoid": [
+      "competitor analysis",
+      "growth vs speed",
+      "cross-department teams",
+      "burnout",
+      "family business",
+      "startup to growth",
+      "personal infrastructure"
+    ]
+  },
+
+  "entrepreneur": {
+    "publication": "Entrepreneur Leadership Network",
+    "total_articles": 8,
+    "articles": [
+      {
+        "date": "2026-01",
+        "title": "The Government Is Taking Up Too Much of Our Focus - Here's Why",
+        "theme": "strategy",
+        "topics": ["government policy", "regulation", "focus"],
+        "key_concepts": ["constant reaction danger", "compliance delegation", "regulatory advantage"]
+      },
+      {
+        "date": "2025-11",
+        "title": "Annual Reviews Are Lazy - Here's How to Actually Learn From Your Work",
+        "theme": "process",
+        "topics": ["post-mortems", "annual reviews", "continuous improvement"],
+        "key_concepts": ["regular post-mortems", "pre-mortems", "no-blame culture"]
+      },
+      {
+        "date": "2025-10",
+        "title": "58% of College Grads Are Still Job Hunting - Here's How to Attract & Retain Young Job Seekers",
+        "theme": "hiring",
+        "topics": ["Gen Z", "hiring", "company culture", "retention"],
+        "key_concepts": ["Brite Shadow", "Brite Room Spark Sessions", "intern-to-hire pipeline"]
+      },
+      {
+        "date": "2025-09",
+        "title": "Why Work-Life Balance is a Myth That's Making Entrepreneurs Miserable",
+        "theme": "mindset",
+        "topics": ["work-life balance", "integration", "entrepreneurship"],
+        "key_concepts": ["work-life mastery", "meaningful work", "flexible time"]
+      },
+      {
+        "date": "2025-08",
+        "title": "Grace Is a Leadership Strategy - Here's How CEOs Can Use It Effectively",
+        "theme": "leadership",
+        "topics": ["grace", "empathy", "leadership"],
+        "key_concepts": ["self-compassion", "postmortems without punishment", "The Bear reference"]
+      },
+      {
+        "date": "2025-04",
+        "title": "5 Things to Know Before Launching a New Product",
+        "theme": "strategy",
+        "topics": ["product launch", "timing", "market research"],
+        "key_concepts": ["product-market fit", "core products first", "cross-pollination"]
+      },
+      {
+        "date": "2025-02",
+        "title": "Today's Thought Leaders Are Stuck in An Echo Chamber. Here's How They Can Break Free",
+        "theme": "innovation",
+        "topics": ["echo chambers", "diversity of thought", "first-principle thinking"],
+        "key_concepts": ["LinkedIn algorithm", "collaborative hiring", "outsider perspective"]
+      },
+      {
+        "date": "2024-09",
+        "title": "How to Hire the Right Employees Who Will Grow With Your Company",
+        "theme": "hiring",
+        "topics": ["hiring", "long-term employees", "cultural fit"],
+        "key_concepts": ["first-principle thinking", "mission-driven", "wolf pack", "AI adaptability"]
+      }
+    ],
+    "themes_covered": ["strategy", "process", "hiring", "mindset", "leadership", "innovation"],
+    "topics_to_avoid": [
+      "government policy focus",
+      "annual reviews/post-mortems",
+      "Gen Z hiring",
+      "work-life balance",
+      "grace as leadership",
+      "product launch",
+      "echo chambers",
+      "long-term hiring"
+    ]
+  },
+
+  "fast_company": {
+    "publication": "Fast Company Executive Board",
+    "total_articles": 4,
+    "articles": [
+      {
+        "date": "2026-01",
+        "title": "Why you shouldn't wait until year end to act",
+        "theme": "process",
+        "topics": ["year-end planning", "real-time feedback", "urgency"],
+        "key_concepts": ["scramble mentality", "missed opportunities", "feedback loops"]
+      },
+      {
+        "date": "2025-11",
+        "title": "Is the myth of the perfect time keeping you behind?",
+        "theme": "mindset",
+        "topics": ["timing", "action bias", "risk-taking"],
+        "key_concepts": ["no perfect time", "trust instincts", "COVID launch story"]
+      },
+      {
+        "date": "2025-09",
+        "title": "The state of consumer trust and how to boost it",
+        "theme": "marketing",
+        "topics": ["consumer trust", "brand authenticity", "credibility"],
+        "key_concepts": ["third-party validation", "authoritative presence", "expert content"]
+      },
+      {
+        "date": "2025-05",
+        "title": "How to master the art of task delegation",
+        "theme": "leadership",
+        "topics": ["delegation", "productivity", "team management"],
+        "key_concepts": ["ClickUp", "Todoist", "Notion", "accountability systems"]
+      }
+    ],
+    "themes_covered": ["process", "mindset", "marketing", "leadership"],
+    "topics_to_avoid": [
+      "year-end planning",
+      "perfect timing myth",
+      "consumer trust",
+      "task delegation"
+    ]
+  },
+
+  "all_themes_covered": [
+    "strategy",
+    "growth",
+    "leadership",
+    "wellness",
+    "entrepreneurship",
+    "self_development",
+    "process",
+    "hiring",
+    "mindset",
+    "innovation",
+    "marketing"
+  ],
+
+  "recurring_concepts": {
+    "description": "Concepts Dustin frequently references - can be reused but frame differently",
+    "concepts": [
+      "First-principle thinking",
+      "Cultural fit in hiring",
+      "Mission-driven employees",
+      "BriteCo founding story (2019, pre-COVID)",
+      "Regulated industry challenges",
+      "Work-life integration",
+      "Trust and transparency",
+      "Continuous learning",
+      "Customer-first approach"
+    ]
+  },
+
+  "topic_suggestions_by_month": {
+    "january": ["New year planning", "goal setting", "fresh starts", "industry predictions"],
+    "february": ["Valentine's (jewelry angle)", "team appreciation", "mid-Q1 check-ins"],
+    "march": ["Q1 wrap-up", "spring cleaning (business)", "Women's History Month"],
+    "april": ["Tax season insights", "spring hiring", "growth planning"],
+    "may": ["Mother's Day (jewelry angle)", "graduation season", "summer prep"],
+    "june": ["Mid-year review", "wedding season (insurance angle)", "summer strategies"],
+    "july": ["Summer slowdown strategies", "team building", "industry trends"],
+    "august": ["Back to school/work", "fall planning", "hiring season"],
+    "september": ["Q3 wrap-up", "fall strategies", "holiday prep begins"],
+    "october": ["Q4 planning", "holiday retail prep", "industry forecasts"],
+    "november": ["Gratitude/team appreciation", "Black Friday insights", "year-end prep"],
+    "december": ["Year in review", "holiday insights", "2027 predictions"]
+  }
+}

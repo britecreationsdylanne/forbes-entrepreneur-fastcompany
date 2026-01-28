@@ -1,0 +1,274 @@
+{
+  "publication": "Entrepreneur",
+  "publication_full_name": "Entrepreneur Leadership Network",
+  "author": "Dustin Lemick",
+  "author_title": "CEO of BriteCo",
+  "author_tagline": "a leading insurance provider offering best-in-class jewelry and watch insurance",
+
+  "specifications": {
+    "word_count": {
+      "min": 800,
+      "max": 1100,
+      "typical": 900
+    },
+    "character_count": {
+      "min": 4800,
+      "max": 6800,
+      "typical": 5500
+    }
+  },
+
+  "required_elements": {
+    "key_takeaways": {
+      "required": true,
+      "count": 3,
+      "position": "top_of_article",
+      "format": "Bullet points summarizing main insights"
+    }
+  },
+
+  "article_formats": [
+    {
+      "type": "sectioned",
+      "description": "Challenge conventional wisdom with phrase-based sections",
+      "word_count": "800-950",
+      "structure": {
+        "intro": "Contrarian hook challenging common belief",
+        "key_takeaways": "3 bullet points at top",
+        "body": "3-4 sections with phrase-based subheadings",
+        "conclusion": "Action-oriented wrap-up (no explicit header)"
+      },
+      "subheading_style": "Sentence case phrases",
+      "examples": ["Annual Reviews Are Lazy", "Work-Life Balance Myth", "Government Focus"]
+    },
+    {
+      "type": "numbered_list",
+      "description": "Actionable numbered tips or things to know",
+      "word_count": "900-1000",
+      "structure": {
+        "intro": "Context and why this matters",
+        "key_takeaways": "3 bullet points at top",
+        "body": "Numbered sections (1. 2. 3. 4. 5.)",
+        "conclusion": "No explicit conclusion - final tip serves as wrap"
+      },
+      "subheading_style": "Numbered statements (1. Action phrase)",
+      "headline_pattern": "X Things/Ways to [Action]",
+      "examples": ["5 Things to Know Before Launching"]
+    },
+    {
+      "type": "flowing_narrative",
+      "description": "Essay-style thought piece without explicit section headers",
+      "word_count": "1000-1100",
+      "structure": {
+        "intro": "Problem statement or observation",
+        "key_takeaways": "3 bullet points at top",
+        "body": "Flowing paragraphs with Related: links interspersed",
+        "conclusion": "Call to action or reflection"
+      },
+      "subheading_style": "None - continuous flow with Related: links",
+      "examples": ["Echo Chamber", "Hire Right Employees"]
+    }
+  ],
+
+  "headline_patterns": [
+    {
+      "pattern": "contrarian_em_dash",
+      "format": "[Statement] — Here's [Why/How/What]",
+      "examples": [
+        "Annual Reviews Are Lazy — Here's How to Actually Learn From Your Work",
+        "Why Work-Life Balance is a Myth That's Making Entrepreneurs Miserable",
+        "Grace Is a Leadership Strategy — Here's How CEOs Can Use It Effectively"
+      ]
+    },
+    {
+      "pattern": "statistic_hook",
+      "format": "[X%] of [Group] [Situation] — Here's How to [Action]",
+      "examples": [
+        "58% of College Grads Are Still Job Hunting — Here's How to Attract & Retain Young Job Seekers"
+      ]
+    },
+    {
+      "pattern": "numbered_list",
+      "format": "X Things/Ways to [Action]",
+      "examples": [
+        "5 Things to Know Before Launching a New Product"
+      ]
+    },
+    {
+      "pattern": "how_to",
+      "format": "How to [Action] [Qualifier]",
+      "examples": [
+        "How to Hire the Right Employees Who Will Grow With Your Company"
+      ]
+    },
+    {
+      "pattern": "why_statement",
+      "format": "Why [Topic] [Insight]",
+      "examples": [
+        "Why Your Business Won't Scale Without Expert Advisors"
+      ]
+    }
+  ],
+
+  "key_takeaways_format": {
+    "count": 3,
+    "style": "Concise action-oriented statements",
+    "examples": [
+      "Mistakes are inevitable — it's how you respond that shapes your company's culture and future.",
+      "Don't launch without research — timing beats speed every time.",
+      "Work-life balance is a myth; focus instead on intentional work-life integration."
+    ]
+  },
+
+  "subheading_patterns": {
+    "sectioned_format": {
+      "style": "Sentence case phrases",
+      "characteristics": [
+        "Action-oriented but not commands",
+        "Often frames the section's insight",
+        "May include em-dashes"
+      ],
+      "examples": [
+        "It's not one or the other — It's both",
+        "Making work meaningful",
+        "Finding time for personal time",
+        "What a good post-mortem looks like",
+        "Consider pre-mortems, too",
+        "Constant reaction leads to inconsistent results"
+      ]
+    },
+    "numbered_format": {
+      "style": "Numbered statements",
+      "examples": [
+        "1. Engage in market research first",
+        "2. Be mindful of your core products",
+        "3. Ensure you have all the right resources"
+      ]
+    }
+  },
+
+  "intro_styles": [
+    {
+      "type": "contrarian_challenge",
+      "description": "Challenge a commonly held belief or practice",
+      "examples": [
+        "We've seen all the think pieces about work-life balance... But what if none of it is real?",
+        "It's that time of year again... I always have one question: Why do we do this just once a year?"
+      ]
+    },
+    {
+      "type": "statistic_hook",
+      "description": "Open with compelling data point",
+      "examples": [
+        "According to Fortune, more than half of new college graduates — 58% — are still looking for a job.",
+        "According to eMarketer, '88% of worldwide consumers say not trusting a brand is a dealbreaker...'"
+      ]
+    },
+    {
+      "type": "personal_revelation",
+      "description": "Share personal insight or secret",
+      "examples": [
+        "I'm going to divulge one of the biggest secrets to building your business.",
+        "I remember feeling this way when I first started my company, BriteCo."
+      ]
+    },
+    {
+      "type": "cultural_reference",
+      "description": "Open with pop culture or current events",
+      "examples": [
+        "If you haven't watched the latest season of 'The Bear' yet, I highly recommend it..."
+      ]
+    }
+  ],
+
+  "tone": {
+    "primary": ["provocative", "practical", "direct"],
+    "secondary": ["challenging", "actionable", "confident"],
+    "avoid": ["wishy-washy", "overly academic", "passive"]
+  },
+
+  "voice": {
+    "person": "first_person",
+    "characteristics": [
+      "More assertive than Forbes",
+      "Willing to challenge norms",
+      "Personal anecdotes common",
+      "Direct recommendations"
+    ],
+    "phrases": [
+      "Here's what I've learned",
+      "The truth is",
+      "But here's the thing",
+      "I'll admit",
+      "In my experience",
+      "At BriteCo, we",
+      "My advice is"
+    ]
+  },
+
+  "briteco_integration": {
+    "frequency": "2-5 specific mentions",
+    "types": [
+      "Named programs (Brite Shadow, Brite Room Spark Sessions)",
+      "Founding story (2019, pre-COVID)",
+      "Team practices (book club, All Hands)",
+      "Policies (unlimited PTO, hybrid work)",
+      "Product examples (jewelry → wedding insurance)",
+      "Hiring philosophy"
+    ],
+    "examples": [
+      "When I started BriteCo in 2019...",
+      "Our company offers programs like Brite Shadow...",
+      "At BriteCo, we have an in-office book club...",
+      "With my company, BriteCo, we began with jewelry insurance..."
+    ]
+  },
+
+  "recurring_themes": {
+    "concepts": [
+      "First-principle thinking",
+      "Cultural fit in hiring",
+      "Mission-driven employees",
+      "Work-life integration (not balance)",
+      "Post-mortems and continuous learning",
+      "Regulated industry challenges"
+    ],
+    "metaphors": [
+      "Wolf pack (team)",
+      "Flywheel (business momentum)"
+    ]
+  },
+
+  "related_links": {
+    "format": "Related: [Article Title]",
+    "frequency": "2-4 per article",
+    "placement": "Interspersed throughout body",
+    "note": "These are added by Entrepreneur editors, not author"
+  },
+
+  "statistics_usage": {
+    "frequency": "More common than Forbes",
+    "sources": ["Fortune", "WEF", "eMarketer", "Cornell", "Wakefield Research"],
+    "format": "According to [Source], [stat]..."
+  },
+
+  "avoid": [
+    "Passive voice",
+    "Hedging language",
+    "Over-qualifying statements",
+    "ALL CAPS subheadings",
+    "Clickbait without substance",
+    "Generic advice without examples"
+  ],
+
+  "sample_headlines": [
+    "The Government Is Taking Up Too Much of Our Focus — Here's Why",
+    "Annual Reviews Are Lazy — Here's How to Actually Learn From Your Work",
+    "58% of College Grads Are Still Job Hunting — Here's How to Attract & Retain Young Job Seekers",
+    "Why Work-Life Balance is a Myth That's Making Entrepreneurs Miserable",
+    "Grace Is a Leadership Strategy — Here's How CEOs Can Use It Effectively",
+    "5 Things to Know Before Launching a New Product",
+    "Today's Thought Leaders Are Stuck in An Echo Chamber. Here's How They Can Break Free",
+    "How to Hire the Right Employees Who Will Grow With Your Company"
+  ]
+}

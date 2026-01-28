@@ -1,0 +1,235 @@
+{
+  "publication": "Fast Company",
+  "publication_full_name": "Fast Company Executive Board",
+  "author": "Dustin Lemick",
+  "author_title": "CEO and founder of BriteCo",
+  "author_tagline": "an insurtech innovator and third-generation jeweler who founded BriteCo in 2019 to push the boundaries of technology, customer experience, and risk protection",
+
+  "specifications": {
+    "word_count": {
+      "min": 700,
+      "max": 900,
+      "typical": 750
+    },
+    "character_count": {
+      "min": 4200,
+      "max": 5500,
+      "typical": 4500
+    }
+  },
+
+  "distinctive_features": {
+    "subheading_format": "ALL_CAPS",
+    "tone": "Direct and assertive",
+    "article_length": "Shorter than Forbes and Entrepreneur",
+    "structure": "Problem → Solution focused"
+  },
+
+  "article_formats": [
+    {
+      "type": "problem_solution",
+      "description": "Identify problem, provide solution framework",
+      "word_count": "700-750",
+      "structure": {
+        "intro": "Problem statement or myth identification",
+        "body": "3-4 ALL CAPS sections building to solution",
+        "conclusion": "Action-focused wrap-up (no explicit header)"
+      },
+      "subheading_style": "ALL CAPS statements",
+      "examples": ["Year-End Planning", "Perfect Timing Myth"]
+    },
+    {
+      "type": "tactical_how_to",
+      "description": "Practical guide with specific tools and methods",
+      "word_count": "850-900",
+      "structure": {
+        "intro": "Why this matters for leaders",
+        "body": "4-5 ALL CAPS sections with detailed how-to",
+        "conclusion": "Mastery statement or benefit"
+      },
+      "subheading_style": "ALL CAPS action phrases",
+      "examples": ["Task Delegation", "Consumer Trust"]
+    }
+  ],
+
+  "headline_patterns": [
+    {
+      "pattern": "myth_busting_question",
+      "format": "Is [myth] keeping you [negative outcome]?",
+      "examples": [
+        "Is the myth of the perfect time keeping you behind?"
+      ]
+    },
+    {
+      "pattern": "why_shouldnt",
+      "format": "Why you shouldn't [common action]",
+      "examples": [
+        "Why you shouldn't wait until year end to act"
+      ]
+    },
+    {
+      "pattern": "state_and_how",
+      "format": "The state of [topic] and how to [action]",
+      "examples": [
+        "The state of consumer trust and how to boost it"
+      ]
+    },
+    {
+      "pattern": "how_to_master",
+      "format": "How to master [skill/concept]",
+      "examples": [
+        "How to master the art of task delegation"
+      ]
+    }
+  ],
+
+  "subheading_patterns": {
+    "format": "ALL CAPS",
+    "style": "Action-oriented statements or topic declarations",
+    "characteristics": [
+      "Always uppercase",
+      "Typically 4-8 words",
+      "Action verbs common",
+      "Direct and declarative"
+    ],
+    "examples": [
+      "THE YEAR-END SCRAMBLE CAN GET MESSY",
+      "THE POTENTIAL FOR MISSED OPPORTUNITIES",
+      "THE SOLUTION: REAL-TIME FEEDBACK",
+      "PLAN FOR NOW, NOT JUST NEXT YEAR",
+      "IT'S GO TIME",
+      "TRUST YOUR INSTINCTS",
+      "GIVE YOUR BUSINESS THE TIME IT NEEDS",
+      "RECOGNITION IS KEY",
+      "HAVE A STRONG, AUTHORITATIVE PRESENCE",
+      "STICK TO WHAT YOU KNOW (AND DO) BEST",
+      "PROVIDE A CLEAR UNDERSTANDING OF ROLES",
+      "IMPLEMENT THE RIGHT TOOLS",
+      "KEEP TASKS TIMELY",
+      "HOLD EVERYONE ACCOUNTABLE"
+    ]
+  },
+
+  "intro_styles": [
+    {
+      "type": "myth_challenge",
+      "description": "Challenge conventional wisdom or common saying",
+      "examples": [
+        "Timing is everything. If I had a dollar for every time I heard that saying...",
+        "Every December, the same ritual plays out in companies everywhere."
+      ]
+    },
+    {
+      "type": "universal_truth",
+      "description": "Start with broadly applicable statement",
+      "examples": [
+        "Every relationship in your life will be built on one pivotal thing: trust.",
+        "When you're the one in charge, asking for help can be one of the most difficult..."
+      ]
+    },
+    {
+      "type": "direct_problem",
+      "description": "State the problem immediately",
+      "examples": [
+        "This end-of-year push may feel productive, but here's the thing..."
+      ]
+    }
+  ],
+
+  "tone": {
+    "primary": ["direct", "assertive", "practical"],
+    "secondary": ["confident", "action-oriented", "no-nonsense"],
+    "characteristics": [
+      "More direct than Forbes",
+      "Gets to the point quickly",
+      "Shorter sentences",
+      "Punchy paragraphs"
+    ],
+    "avoid": ["hedging", "overly philosophical", "lengthy tangents"]
+  },
+
+  "voice": {
+    "person": "first_person",
+    "characteristics": [
+      "Assertive and confident",
+      "Personal stories as proof points",
+      "Direct recommendations",
+      "Less reflective than Forbes"
+    ],
+    "phrases": [
+      "Here's the thing:",
+      "The truth is",
+      "But here's a secret:",
+      "When we launched BriteCo",
+      "I believe that",
+      "I've found it works best",
+      "In our office"
+    ]
+  },
+
+  "briteco_integration": {
+    "frequency": "1-3 mentions",
+    "placement": "Often in body sections as examples, less in intro",
+    "types": [
+      "Founding story (2019, pre-COVID launch)",
+      "Office practices and tools",
+      "Specific tool recommendations",
+      "Team collaboration examples"
+    ],
+    "examples": [
+      "When we launched BriteCo, our timing couldn't have been worse. We started operations in 2019, right before the pandemic...",
+      "In our office, everyone is connected to the online project management tool ClickUp...",
+      "At BriteCo, we have people on our staff actively working in their fields, such as licensed gemologists.",
+      "One thing we do on our website is offer robust FAQ sections..."
+    ]
+  },
+
+  "tool_recommendations": {
+    "note": "Fast Company articles often include specific tool/platform recommendations",
+    "examples_mentioned": [
+      "ClickUp (project management)",
+      "Google Drive (file sharing)",
+      "Todoist (personal tasks)",
+      "Notion (executive collaboration)"
+    ]
+  },
+
+  "paragraph_style": {
+    "length": "Shorter than Forbes/Entrepreneur",
+    "characteristics": [
+      "Punchy and scannable",
+      "Often 2-4 sentences per paragraph",
+      "White space between ideas"
+    ]
+  },
+
+  "conclusion_style": {
+    "format": "No explicit header",
+    "characteristics": [
+      "Action-focused statement",
+      "Often a strong declarative sentence",
+      "Call to change behavior"
+    ],
+    "examples": [
+      "Persistence always wins because the only way not to drown is to keep moving—and never let the clock get in your way.",
+      "When your customers trust you, they'll keep returning to stock up, renew, and stay tuned for what's next.",
+      "You'll know if you have mastered the art of delegation if you don't have to worry about a task getting done."
+    ]
+  },
+
+  "avoid": [
+    "Sentence case subheadings (must be ALL CAPS)",
+    "Long philosophical tangents",
+    "Hedging language",
+    "Overly formal tone",
+    "Articles over 900 words",
+    "Key Takeaways boxes (that's Entrepreneur's format)"
+  ],
+
+  "sample_headlines": [
+    "Why you shouldn't wait until year end to act",
+    "Is the myth of the perfect time keeping you behind?",
+    "The state of consumer trust and how to boost it",
+    "How to master the art of task delegation"
+  ]
+}
