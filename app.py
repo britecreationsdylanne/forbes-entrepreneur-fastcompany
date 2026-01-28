@@ -795,6 +795,19 @@ def export_transcription():
         if not folder_id:
             return jsonify({'error': 'Folder ID not configured'}), 400
 
+        # Verify folder access first (supports Shared Drives)
+        try:
+            folder_check = drive_service.files().get(
+                fileId=folder_id,
+                fields='id, name',
+                supportsAllDrives=True
+            ).execute()
+            print(f"[API] Folder access OK: {folder_check.get('name')}")
+        except Exception as folder_err:
+            return jsonify({
+                'error': f"Cannot access Google Drive folder. Ensure the service account has access. Folder ID: {folder_id}. Error: {str(folder_err)}"
+            }), 500
+
         # Format title: Year Month Publication Transcribed Audio
         title = format_doc_title(year, month, publication, 'Transcribed Audio')
 
@@ -806,14 +819,18 @@ def export_transcription():
         content += "=" * 50 + "\n\n"
         content += transcription
 
-        # Create the document
+        # Create the document (supports Shared Drives)
         doc_metadata = {
             'name': title,
             'mimeType': 'application/vnd.google-apps.document',
             'parents': [folder_id]
         }
 
-        doc = drive_service.files().create(body=doc_metadata).execute()
+        doc = drive_service.files().create(
+            body=doc_metadata,
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         doc_id = doc.get('id')
 
         # Add content to document
@@ -831,10 +848,11 @@ def export_transcription():
             body={'requests': requests_list}
         ).execute()
 
-        # Make document accessible
+        # Make document accessible (supports Shared Drives)
         drive_service.permissions().create(
             fileId=doc_id,
-            body={'type': 'anyone', 'role': 'reader'}
+            body={'type': 'anyone', 'role': 'reader'},
+            supportsAllDrives=True
         ).execute()
 
         doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
@@ -874,14 +892,31 @@ def export_to_docs():
         if not folder_id:
             return jsonify({'error': 'Folder ID not configured'}), 400
 
-        # Create the document
+        # Verify folder access first (supports Shared Drives)
+        try:
+            folder_check = drive_service.files().get(
+                fileId=folder_id,
+                fields='id, name',
+                supportsAllDrives=True
+            ).execute()
+            print(f"[API] Folder access OK: {folder_check.get('name')}")
+        except Exception as folder_err:
+            return jsonify({
+                'error': f"Cannot access Google Drive folder. Ensure the service account has access. Folder ID: {folder_id}. Error: {str(folder_err)}"
+            }), 500
+
+        # Create the document (supports Shared Drives)
         doc_metadata = {
             'name': title,
             'mimeType': 'application/vnd.google-apps.document',
             'parents': [folder_id]
         }
 
-        doc = drive_service.files().create(body=doc_metadata).execute()
+        doc = drive_service.files().create(
+            body=doc_metadata,
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         doc_id = doc.get('id')
 
         # Add content to document
@@ -899,10 +934,11 @@ def export_to_docs():
             body={'requests': requests_list}
         ).execute()
 
-        # Make document accessible
+        # Make document accessible (supports Shared Drives)
         drive_service.permissions().create(
             fileId=doc_id,
-            body={'type': 'anyone', 'role': 'reader'}
+            body={'type': 'anyone', 'role': 'reader'},
+            supportsAllDrives=True
         ).execute()
 
         doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
@@ -932,6 +968,7 @@ def send_notification():
     month = data.get('month')
     year = data.get('year', datetime.now().year)
     title = data.get('title', 'CEO Article')
+    custom_recipients = data.get('recipients')  # Custom recipients from frontend
 
     try:
         import sendgrid
@@ -939,8 +976,11 @@ def send_notification():
 
         sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
 
-        # Determine recipients
-        recipients = FINAL_RECIPIENTS if notification_type == 'final' else DRAFT_RECIPIENTS
+        # Use custom recipients if provided, otherwise fall back to defaults
+        if custom_recipients and len(custom_recipients) > 0:
+            recipients = custom_recipients
+        else:
+            recipients = FINAL_RECIPIENTS if notification_type == 'final' else DRAFT_RECIPIENTS
 
         # Build email content
         if notification_type == 'final':
