@@ -982,7 +982,6 @@
         <h1>CEO Article Generator</h1>
         <div class="user-info" id="userInfo">
             <img class="user-avatar" id="userAvatar" src="" alt="">
-            <span class="user-name" id="userName"></span>
         </div>
     </header>
 
@@ -1319,7 +1318,6 @@
             if (currentUser) {
                 const userInfo = document.getElementById('userInfo');
                 const userAvatar = document.getElementById('userAvatar');
-                const userName = document.getElementById('userName');
 
                 if (currentUser.picture) {
                     userAvatar.src = currentUser.picture;
@@ -1328,7 +1326,6 @@
                     userAvatar.style.display = 'none';
                 }
 
-                userName.textContent = currentUser.name || currentUser.email;
                 userInfo.style.display = 'flex';
 
                 // Set user in BritePulse for feedback attribution
@@ -1390,7 +1387,9 @@
         }
 
         function updateSavedTopicsCount() {
-            document.getElementById('savedTopicsCount').textContent = savedTopics.length;
+            // Element removed - function kept for backwards compatibility
+            const el = document.getElementById('savedTopicsCount');
+            if (el) el.textContent = savedTopics.length;
         }
 
 
@@ -1690,7 +1689,6 @@
                         <h5>${draft.title || 'Untitled Article'}</h5>
                         <div class="draft-pub">${formatPubName(draft.publication)} - ${draft.month} ${draft.year || ''}</div>
                         <div class="draft-meta">
-                            Created by ${draft.created_by || 'Unknown'}<br>
                             ${formatDate(draft.created_at)}
                         </div>
                         <span class="draft-step-badge">Step ${draft.current_step} of 6</span>
