@@ -26,6 +26,17 @@ load_dotenv()
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
+# Initialize GCS for drafts and saved topics
+GCS_BUCKET_NAME = 'ceo-article-generator-drafts'
+SAVED_TOPICS_BLOB = 'saved-topics/topics.json'
+gcs_client = None
+try:
+    from google.cloud import storage as gcs_storage
+    gcs_client = gcs_storage.Client()
+    print("[OK] GCS initialized")
+except Exception as e:
+    print(f"[WARNING] GCS not available: {e}")
+
 # Fix for running behind Cloud Run's proxy - ensures correct HTTPS URLs
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
@@ -663,96 +674,214 @@ def rewrite_article():
         return jsonify({'error': str(e)}), 500
 
 # ===================
-# Routes - Draft Management
+# Routes - Draft Management (GCS)
 # ===================
 
 @app.route('/api/drafts/save', methods=['POST'])
 def save_draft():
-    """Save a draft"""
-    data = request.json
-    draft_id = data.get('draft_id') or str(uuid.uuid4())
+    """Save a draft to GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
 
-    # Get current user for creator tracking
-    current_user = get_current_user()
-    user_email = current_user.get('email', 'Unknown') if current_user else 'Unknown'
+    try:
+        data = request.json
+        draft_id = data.get('draft_id') or str(uuid.uuid4())
 
-    # Check if draft already exists to preserve created_at and created_by
-    existing_draft = {}
-    draft_path = DRAFTS_DIR / f"{draft_id}.json"
-    if draft_path.exists():
-        with open(draft_path, 'r') as f:
-            existing_draft = json.load(f)
+        # Get current user for creator tracking
+        current_user = get_current_user()
+        user_email = current_user.get('email', 'Unknown') if current_user else 'Unknown'
 
-    draft = {
-        'id': draft_id,
-        'publication': data.get('publication'),
-        'month': data.get('month'),
-        'year': data.get('year'),
-        'current_step': data.get('current_step', 1),
-        'data': data.get('data', {}),
-        'created_at': existing_draft.get('created_at', datetime.now().isoformat()),
-        'created_by': existing_draft.get('created_by', user_email),
-        'updated_at': datetime.now().isoformat()
-    }
+        # Check if draft already exists to preserve created_at and created_by
+        existing_draft = {}
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob_name = f"drafts/{draft_id}.json"
+        blob = bucket.blob(blob_name)
 
-    # Save to file
-    draft_path = DRAFTS_DIR / f"{draft_id}.json"
-    with open(draft_path, 'w') as f:
-        json.dump(draft, f, indent=2)
+        if blob.exists():
+            existing_draft = json.loads(blob.download_as_text())
 
-    return jsonify({
-        'success': True,
-        'draft_id': draft_id,
-        'message': 'Draft saved successfully'
-    })
+        draft = {
+            'id': draft_id,
+            'publication': data.get('publication'),
+            'month': data.get('month'),
+            'year': data.get('year'),
+            'current_step': data.get('current_step', 1),
+            'data': data.get('data', {}),
+            'created_at': existing_draft.get('created_at', datetime.now().isoformat()),
+            'created_by': existing_draft.get('created_by', user_email),
+            'updated_at': datetime.now().isoformat()
+        }
+
+        # Save to GCS
+        blob.upload_from_string(json.dumps(draft, indent=2), content_type='application/json')
+
+        return jsonify({
+            'success': True,
+            'draft_id': draft_id,
+            'message': 'Draft saved successfully'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/drafts/list', methods=['GET'])
 def list_drafts():
-    """List all drafts"""
-    drafts = []
-    for draft_file in DRAFTS_DIR.glob('*.json'):
-        try:
-            with open(draft_file, 'r') as f:
-                draft = json.load(f)
-                drafts.append({
-                    'id': draft.get('id'),
-                    'publication': draft.get('publication'),
-                    'month': draft.get('month'),
-                    'year': draft.get('year'),
-                    'current_step': draft.get('current_step'),
-                    'title': draft.get('data', {}).get('topic', {}).get('headline', 'Untitled'),
-                    'created_at': draft.get('created_at'),
-                    'created_by': draft.get('created_by', 'Unknown'),
-                    'updated_at': draft.get('updated_at')
-                })
-        except Exception:
-            continue
+    """List all drafts from GCS"""
+    if not gcs_client:
+        return jsonify({'drafts': []})
 
-    # Sort by updated_at descending
-    drafts.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+    try:
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blobs = list(bucket.list_blobs(prefix='drafts/'))
+        drafts = []
 
-    return jsonify({'drafts': drafts})
+        for blob in blobs:
+            if blob.name.endswith('.json'):
+                try:
+                    draft = json.loads(blob.download_as_text())
+                    drafts.append({
+                        'id': draft.get('id'),
+                        'publication': draft.get('publication'),
+                        'month': draft.get('month'),
+                        'year': draft.get('year'),
+                        'current_step': draft.get('current_step'),
+                        'title': draft.get('data', {}).get('topic', {}).get('headline', 'Untitled'),
+                        'created_at': draft.get('created_at'),
+                        'created_by': draft.get('created_by', 'Unknown'),
+                        'updated_at': draft.get('updated_at')
+                    })
+                except Exception:
+                    continue
+
+        # Sort by updated_at descending
+        drafts.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+
+        return jsonify({'drafts': drafts})
+
+    except Exception as e:
+        return jsonify({'drafts': [], 'error': str(e)})
 
 @app.route('/api/drafts/<draft_id>', methods=['GET'])
 def get_draft(draft_id):
-    """Get a specific draft"""
-    draft_path = DRAFTS_DIR / f"{draft_id}.json"
-    if not draft_path.exists():
-        return jsonify({'error': 'Draft not found'}), 404
+    """Get a specific draft from GCS"""
+    if not gcs_client:
+        return jsonify({'error': 'GCS not available'}), 503
 
-    with open(draft_path, 'r') as f:
-        draft = json.load(f)
+    try:
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(f"drafts/{draft_id}.json")
 
-    return jsonify(draft)
+        if not blob.exists():
+            return jsonify({'error': 'Draft not found'}), 404
+
+        draft = json.loads(blob.download_as_text())
+        return jsonify(draft)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/drafts/<draft_id>', methods=['DELETE'])
 def delete_draft(draft_id):
-    """Delete a draft"""
-    draft_path = DRAFTS_DIR / f"{draft_id}.json"
-    if draft_path.exists():
-        draft_path.unlink()
+    """Delete a draft from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True})
 
-    return jsonify({'success': True, 'message': 'Draft deleted'})
+    try:
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(f"drafts/{draft_id}.json")
+
+        if blob.exists():
+            blob.delete()
+
+        return jsonify({'success': True, 'message': 'Draft deleted'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ===================
+# Routes - Saved Topics (GCS)
+# ===================
+
+@app.route('/api/saved-topics', methods=['GET'])
+def list_saved_topics():
+    """List all saved topics from GCS"""
+    if not gcs_client:
+        return jsonify({'success': True, 'topics': []})
+
+    try:
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(SAVED_TOPICS_BLOB)
+
+        if not blob.exists():
+            return jsonify({'success': True, 'topics': []})
+
+        topics = json.loads(blob.download_as_text())
+        return jsonify({'success': True, 'topics': topics})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'topics': []})
+
+@app.route('/api/saved-topics', methods=['POST'])
+def save_topic():
+    """Save a topic to the shared bank"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+
+    try:
+        topic = request.json
+        if not topic or not topic.get('headline'):
+            return jsonify({'success': False, 'error': 'Topic headline required'}), 400
+
+        # Get current user
+        current_user = get_current_user()
+        user_email = current_user.get('email', 'Unknown') if current_user else 'Unknown'
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(SAVED_TOPICS_BLOB)
+
+        topics = []
+        if blob.exists():
+            topics = json.loads(blob.download_as_text())
+
+        # Check if already saved (by headline)
+        if any(t.get('headline') == topic.get('headline') for t in topics):
+            return jsonify({'success': False, 'error': 'Topic already saved'})
+
+        # Add metadata
+        topic['savedAt'] = datetime.now().isoformat()
+        topic['savedBy'] = user_email
+
+        topics.append(topic)
+        blob.upload_from_string(json.dumps(topics, indent=2), content_type='application/json')
+
+        return jsonify({'success': True, 'topic': topic})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/saved-topics/<int:index>', methods=['DELETE'])
+def delete_saved_topic(index):
+    """Delete a saved topic by index"""
+    if not gcs_client:
+        return jsonify({'success': True})
+
+    try:
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(SAVED_TOPICS_BLOB)
+
+        if not blob.exists():
+            return jsonify({'success': True})
+
+        topics = json.loads(blob.download_as_text())
+
+        if 0 <= index < len(topics):
+            topics.pop(index)
+            blob.upload_from_string(json.dumps(topics, indent=2), content_type='application/json')
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ===================
 # Routes - Google Docs Export
