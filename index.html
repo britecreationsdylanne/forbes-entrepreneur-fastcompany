@@ -357,11 +357,13 @@
 
         .btn-secondary {
             background: var(--secondary);
-            color: var(--white);
+            color: var(--dark);
+            font-weight: 700;
         }
 
         .btn-secondary:hover {
-            opacity: 0.9;
+            background: #e67a0e;
+            color: var(--dark);
         }
 
         .btn-outline {
@@ -628,7 +630,7 @@
         /* Export Options */
         .export-options {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 20px;
             margin-top: 30px;
         }
@@ -1072,7 +1074,7 @@
 
                 <div class="upload-area">
                     <p>Or upload an existing recording:</p>
-                    <input type="file" id="audioUpload" accept="audio/*,.webm,.mp3,.m4a,.wav" style="margin-top: 10px;">
+                    <input type="file" id="audioUpload" accept="audio/*,video/mp4,.webm,.mp3,.m4a,.wav,.mp4" style="margin-top: 10px;">
                 </div>
             </div>
 
@@ -1130,6 +1132,7 @@
 
             <div class="btn-group" style="margin-bottom: 30px;">
                 <button class="btn btn-outline" id="rewriteBtn">🔄 Rewrite with AI</button>
+                <button class="btn btn-primary" id="saveDraftStep5Btn">💾 Save Draft</button>
             </div>
 
             <div class="export-options">
@@ -1435,13 +1438,13 @@
             draft: [
                 { email: 'dylanne.crugnale@brite.co', name: 'Dylanne Crugnale', checked: true },
                 { email: 'dustin@brite.co', name: 'Dustin Lemick', checked: true },
-                { email: 'dove.hamilton@brite.co', name: 'Dove Hamilton', checked: false },
+                { email: 'dove@brite.co', name: 'Dove Tugadi', checked: false },
                 { email: 'selena.fragassi@brite.co', name: 'Selena Fragassi', checked: false }
             ],
             final: [
                 { email: 'dylanne.crugnale@brite.co', name: 'Dylanne Crugnale', checked: true },
                 { email: 'dustin@brite.co', name: 'Dustin Lemick', checked: true },
-                { email: 'dove.hamilton@brite.co', name: 'Dove Hamilton', checked: true },
+                { email: 'dove@brite.co', name: 'Dove Tugadi', checked: true },
                 { email: 'selena.fragassi@brite.co', name: 'Selena Fragassi', checked: true }
             ]
         };
@@ -1979,12 +1982,14 @@
 
         document.getElementById('step3Back').addEventListener('click', () => showPanel(2));
         document.getElementById('step3Next').addEventListener('click', async () => {
+            // Show loading overlay while generating
             showPanel(4);
             await generateArticle();
+            // generateArticle now automatically advances to step 5 when done
         });
 
         // ===================
-        // Step 4: Article Generation
+        // Step 4: Article Generation (now auto-advances to step 5)
         // ===================
         async function generateArticle() {
             document.getElementById('generationLoading').style.display = 'block';
@@ -2004,9 +2009,14 @@
 
             if (result.success) {
                 state.article = result.article;
-                document.getElementById('generationComplete').style.display = 'block';
+                // Skip step 4 completion screen - go straight to draft
+                document.getElementById('articleTitle').value = state.selectedTopic.headline;
+                document.getElementById('articleEditor').value = state.article;
+                updateArticleWordCount();
+                showPanel(5);
             } else {
                 alert('Error generating article: ' + result.error);
+                showPanel(3); // Go back to recording step on error
             }
         }
 
@@ -2077,8 +2087,9 @@
 
             if (result.success) {
                 state.docUrl = result.doc_url;
-                showAlert(document.getElementById('draftExportResult'),
-                    `✅ Draft exported! View at: ${result.doc_url}`, 'success');
+                const resultDiv = document.getElementById('draftExportResult');
+                resultDiv.innerHTML = `<div class="alert alert-success">✅ Draft exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
+                resultDiv.style.display = 'block';
             } else {
                 showAlert(document.getElementById('draftExportResult'),
                     `❌ Error: ${result.error}`, 'error');
@@ -2115,8 +2126,9 @@
             btn.textContent = 'Send Notification';
 
             if (result.success) {
-                showAlert(document.getElementById('draftExportResult'),
-                    `✅ Email sent to ${result.sent_count} recipients!`, 'success');
+                const resultDiv = document.getElementById('draftExportResult');
+                resultDiv.innerHTML = `<div class="alert alert-success" style="background: #28a745; color: white; font-weight: 600; padding: 20px; font-size: 1.1rem;">✅ Email sent successfully to ${result.sent_count} recipient${result.sent_count > 1 ? 's' : ''}!</div>`;
+                resultDiv.style.display = 'block';
             } else {
                 showAlert(document.getElementById('draftExportResult'),
                     `❌ Error: ${result.error}`, 'error');
@@ -2171,8 +2183,9 @@
 
             if (result.success) {
                 state.docUrl = result.doc_url;
-                showAlert(document.getElementById('finalExportResult'),
-                    `✅ Final exported! View at: ${result.doc_url}`, 'success');
+                const resultDiv = document.getElementById('finalExportResult');
+                resultDiv.innerHTML = `<div class="alert alert-success">✅ Final exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
+                resultDiv.style.display = 'block';
             } else {
                 showAlert(document.getElementById('finalExportResult'),
                     `❌ Error: ${result.error}`, 'error');
@@ -2209,8 +2222,9 @@
             btn.textContent = 'Send Final Notification';
 
             if (result.success) {
-                showAlert(document.getElementById('finalExportResult'),
-                    `✅ Final notification sent to ${result.sent_count} recipients!`, 'success');
+                const resultDiv = document.getElementById('finalExportResult');
+                resultDiv.innerHTML = `<div class="alert alert-success" style="background: #28a745; color: white; font-weight: 600; padding: 20px; font-size: 1.1rem;">✅ Email sent successfully to ${result.sent_count} recipient${result.sent_count > 1 ? 's' : ''}!</div>`;
+                resultDiv.style.display = 'block';
             } else {
                 showAlert(document.getElementById('finalExportResult'),
                     `❌ Error: ${result.error}`, 'error');
@@ -2239,6 +2253,14 @@
         });
 
         document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
+        document.getElementById('saveDraftStep5Btn').addEventListener('click', async () => {
+            const btn = document.getElementById('saveDraftStep5Btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            await saveDraft();
+            btn.disabled = false;
+            btn.textContent = '💾 Save Draft';
+        });
 
         // ===================
         // Initialize

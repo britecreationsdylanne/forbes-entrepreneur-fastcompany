@@ -982,13 +982,16 @@ def send_notification():
         else:
             recipients = FINAL_RECIPIENTS if notification_type == 'final' else DRAFT_RECIPIENTS
 
+        # Get proper publication display name (capitalized)
+        pub_display_name = get_pub_display_name(publication)
+
         # Build email content
         if notification_type == 'final':
-            subject = f"[FINAL] {publication} Article Ready: {title}"
+            subject = f"{pub_display_name} {month} (Final) - Ready for Submission"
             status_text = "FINAL - Ready for Submission"
             status_color = "#28a745"
         else:
-            subject = f"[DRAFT] {publication} Article Ready for Review: {title}"
+            subject = f"{pub_display_name} {month} (Draft) - Ready for Review"
             status_text = "DRAFT - Ready for Review"
             status_color = "#FE8916"
 
