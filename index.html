@@ -944,12 +944,142 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
-            accent-color: var(--primary);
+            accent-color: #008181;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            border: 2px solid #008181;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .topic-checkbox:checked {
+            background: #008181;
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
         }
 
         .topic-card.selected {
             border-color: var(--primary);
             background: rgba(0, 129, 129, 0.05);
+        }
+
+        /* Saved Topics Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 100px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(80vh - 80px);
+        }
+
+        .modal-description {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        .saved-topic-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #fefce8;
+            border-left: 4px solid #facc15;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .saved-topic-item .topic-info {
+            flex: 1;
+        }
+
+        .saved-topic-item .topic-headline {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .saved-topic-item .topic-meta {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .saved-topic-item .topic-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .saved-topic-item .use-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .saved-topic-item .delete-btn {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .saved-topic-item .delete-btn:hover {
+            background: #fee2e2;
+            color: #dc2626;
         }
 
         /* Responsive */
@@ -980,9 +1110,6 @@
     <!-- Header -->
     <header class="header">
         <h1>CEO Article Generator</h1>
-        <div class="user-info" id="userInfo">
-            <img class="user-avatar" id="userAvatar" src="" alt="">
-        </div>
     </header>
 
     <div class="container">
@@ -1075,6 +1202,7 @@
                     <div class="btn-group" style="margin-bottom: 20px;">
                         <button class="btn btn-primary" id="researchBtn">🔍 Research Current Trends</button>
                         <button class="btn btn-outline" id="regenerateBtn" disabled>🔄 Regenerate Topics</button>
+                        <button class="btn" id="savedTopicsBtn" style="background: #1e293b; color: white; border: none;">📌 Saved Topics</button>
                     </div>
 
                     <div id="topicsLoading" class="loading" style="display: none;">
@@ -1108,15 +1236,6 @@
                     </div>
                 </div>
 
-                <!-- Saved Topics Sidebar -->
-                <div id="savedTopicsSidebar" style="width: 280px; flex-shrink: 0;">
-                    <div style="background: #fefce8; border: 1px solid #facc15; border-radius: 12px; padding: 20px; position: sticky; top: 20px;">
-                        <h4 style="margin: 0 0 15px 0; color: #854d0e;">📌 <span id="savedTopicsPubName2">Saved Topics</span></h4>
-                        <div id="savedTopicsList2" style="max-height: 400px; overflow-y: auto;">
-                            <p style="color: #854d0e; font-size: 13px;">No saved topics yet</p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -1143,16 +1262,18 @@
             <div id="transcriptionContainer" style="display: none;">
                 <h3>Transcription</h3>
                 <div class="transcription-box" id="transcriptionBox"></div>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn btn-outline" id="editTranscription">Edit Transcription</button>
+                <div class="btn-group" style="margin-top: 15px;">
+                    <button class="btn btn-outline" id="step3Back">← Back</button>
+                    <button class="btn btn-outline" id="editTranscription">Edit</button>
                     <button class="btn btn-secondary" id="exportTranscription">Export to Google Docs</button>
+                    <button class="btn btn-primary" id="step3Next" disabled>Generate Article →</button>
                 </div>
-                <div id="transcriptionExportResult" style="display: none; margin-top: 10px;"></div>
+                <div id="transcriptionExportResult" style="margin-top: 10px;"></div>
             </div>
 
-            <div class="btn-group">
-                <button class="btn btn-outline" id="step3Back">← Back</button>
-                <button class="btn btn-primary" id="step3Next" disabled>Generate Article →</button>
+            <div class="btn-group" id="step3BtnGroup">
+                <button class="btn btn-outline" id="step3BackNoTrans">← Back</button>
+                <button class="btn btn-primary" id="step3NextNoTrans" disabled>Generate Article →</button>
             </div>
         </div>
 
@@ -1227,7 +1348,7 @@
                         <input type="email" id="draftCustomEmail" placeholder="Add custom email..." style="width: calc(100% - 80px); display: inline-block;">
                         <button class="btn btn-outline" id="draftAddEmail" style="padding: 10px 15px; vertical-align: top;">Add</button>
                     </div>
-                    <button class="btn btn-secondary" id="sendDraftEmailBtn" style="width: 100%; margin-top: 15px;">Send</button>
+                    <button class="btn btn-primary" id="sendDraftEmailBtn" style="width: 100%; margin-top: 15px;">Send</button>
                 </div>
             </div>
 
@@ -1285,7 +1406,7 @@
                         <input type="email" id="finalCustomEmail" placeholder="Add custom email..." style="width: calc(100% - 80px); display: inline-block;">
                         <button class="btn btn-outline" id="finalAddEmail" style="padding: 10px 15px; vertical-align: top;">Add</button>
                     </div>
-                    <button class="btn btn-secondary" id="sendFinalEmailBtn" style="width: 100%; margin-top: 15px;">Send</button>
+                    <button class="btn btn-primary" id="sendFinalEmailBtn" style="width: 100%; margin-top: 15px;">Send</button>
                 </div>
             </div>
 
@@ -1387,7 +1508,6 @@
         }
 
         function updateSavedTopicsCount() {
-            // Element removed - function kept for backwards compatibility
             const el = document.getElementById('savedTopicsCount');
             if (el) el.textContent = savedTopics.length;
         }
@@ -1406,6 +1526,7 @@
                 if (result.success) {
                     savedTopics.push(result.topic);
                     updateSavedTopicsCount();
+                    renderSavedTopics();
                     return true;
                 }
             } catch (e) {
@@ -1689,7 +1810,7 @@
                         <h5>${draft.title || 'Untitled Article'}</h5>
                         <div class="draft-pub">${formatPubName(draft.publication)} - ${draft.month} ${draft.year || ''}</div>
                         <div class="draft-meta">
-                            ${formatDate(draft.created_at)}
+                            ${formatDate(draft.created_at)}${draft.created_by ? ` • ${draft.created_by}` : ''}
                         </div>
                         <span class="draft-step-badge">Step ${draft.current_step} of 6</span>
                         <div class="draft-actions">
@@ -2147,6 +2268,11 @@
         });
 
         document.getElementById('step3Back').addEventListener('click', () => showPanel(2));
+        document.getElementById('step3BackNoTrans')?.addEventListener('click', () => showPanel(2));
+        document.getElementById('step3NextNoTrans')?.addEventListener('click', async () => {
+            showPanel(4);
+            await generateArticle();
+        });
         document.getElementById('step3Next').addEventListener('click', async () => {
             // Show loading overlay while generating
             showPanel(4);
