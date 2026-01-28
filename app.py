@@ -8,11 +8,15 @@ import json
 import uuid
 import base64
 import tempfile
+import secrets
 from datetime import datetime
 from pathlib import Path
+from functools import wraps
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect, session, url_for, Response
 from flask_cors import CORS
+from authlib.integrations.flask_client import OAuth
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -21,7 +25,38 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__, static_folder='static')
 CORS(app)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')
+
+# Fix for running behind Cloud Run's proxy - ensures correct HTTPS URLs
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# Session configuration
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
+
+# OAuth configuration
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
+
+# Allowed email domain
+ALLOWED_DOMAIN = 'brite.co'
+
+def login_required(f):
+    """Decorator to require authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect('/auth/login')
+        return f(*args, **kwargs)
+    return decorated_function
+
+def get_current_user():
+    """Get current user from session"""
+    return session.get('user')
 
 # ===================
 # Configuration
@@ -115,13 +150,86 @@ def get_google_docs_service():
     return docs_service, drive_service
 
 # ===================
+# Routes - Authentication
+# ===================
+
+@app.route('/auth/login')
+def auth_login():
+    """Initiate Google OAuth login"""
+    if get_current_user():
+        return redirect('/')
+    redirect_uri = url_for('auth_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle Google OAuth callback"""
+    try:
+        token = google.authorize_access_token()
+        user_info = token.get('userinfo')
+        if not user_info:
+            return 'Failed to get user info', 400
+        email = user_info.get('email', '')
+        if not email.endswith(f'@{ALLOWED_DOMAIN}'):
+            return f'''
+            <html>
+            <head><title>Access Denied</title></head>
+            <body style="font-family: system-ui; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: linear-gradient(135deg, #018181 0%, #272d3f 100%); color: white;">
+                <div style="text-align: center; padding: 40px; background: rgba(0,0,0,0.3); border-radius: 12px;">
+                    <h1>Access Denied</h1>
+                    <p>Only @{ALLOWED_DOMAIN} email addresses are allowed.</p>
+                    <p style="color: #a0aec0;">You signed in with: {email}</p>
+                    <a href="/auth/logout" style="color: #00E5E5;">Try a different account</a>
+                </div>
+            </body>
+            </html>
+            ''', 403
+        session['user'] = {
+            'email': email,
+            'name': user_info.get('name', ''),
+            'picture': user_info.get('picture', '')
+        }
+        return redirect('/')
+    except Exception as e:
+        print(f"Auth callback error: {e}")
+        return f'Authentication failed: {str(e)}', 400
+
+@app.route('/auth/logout')
+def auth_logout():
+    """Log out the user"""
+    session.pop('user', None)
+    return redirect('/auth/login')
+
+@app.route('/api/user')
+def get_user():
+    """Get current user info"""
+    user = get_current_user()
+    if user:
+        return jsonify(user)
+    return jsonify(None), 401
+
+# ===================
 # Routes - Static Files
 # ===================
 
 @app.route('/')
 def index():
-    """Serve the main application"""
-    return send_from_directory('.', 'index.html')
+    """Serve the main application - redirect to login if not authenticated"""
+    user = get_current_user()
+    if not user:
+        return redirect('/auth/login')
+
+    with open('index.html', 'r', encoding='utf-8') as f:
+        html = f.read()
+
+    # Inject user info for the frontend
+    user_script = f'''<script>
+    window.AUTH_USER = {json.dumps(user)};
+    </script>
+</head>'''
+    html = html.replace('</head>', user_script, 1)
+
+    return Response(html, mimetype='text/html')
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -564,6 +672,10 @@ def save_draft():
     data = request.json
     draft_id = data.get('draft_id') or str(uuid.uuid4())
 
+    # Get current user for creator tracking
+    current_user = get_current_user()
+    user_email = current_user.get('email', 'Unknown') if current_user else 'Unknown'
+
     # Check if draft already exists to preserve created_at and created_by
     existing_draft = {}
     draft_path = DRAFTS_DIR / f"{draft_id}.json"
@@ -579,7 +691,7 @@ def save_draft():
         'current_step': data.get('current_step', 1),
         'data': data.get('data', {}),
         'created_at': existing_draft.get('created_at', datetime.now().isoformat()),
-        'created_by': existing_draft.get('created_by', data.get('created_by', 'Unknown')),
+        'created_by': existing_draft.get('created_by', user_email),
         'updated_at': datetime.now().isoformat()
     }
 

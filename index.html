@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CEO Article Generator | BriteCo</title>
+
+    <!-- BritePulse Error Tracking & Feedback -->
+    <script
+      src="https://britepulse-api-29820647719.us-central1.run.app/sdk.js"
+      data-api-key="pk_14785193-882b-449c-bfd9-99eeaa142818_930eaf2024f643c5b721dfbc2d4a5e7c"
+      data-api-url="https://britepulse-api-29820647719.us-central1.run.app"
+      defer
+    ></script>
+
     <style>
         :root {
             --primary: #008181;
@@ -44,11 +53,51 @@
             color: var(--white);
             padding: 40px 30px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
             font-size: 2rem;
             font-weight: 700;
+        }
+
+        /* User Info */
+        .user-info {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+        }
+
+        .user-name {
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #a0aec0;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
         }
 
         /* Drafts Panel */
@@ -630,6 +679,11 @@
     <!-- Header -->
     <header class="header">
         <h1>CEO Article Generator</h1>
+        <div class="user-info" id="userInfo">
+            <img class="user-avatar" id="userAvatar" src="" alt="">
+            <span class="user-name" id="userName"></span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
     </header>
 
     <div class="container">
@@ -893,6 +947,44 @@
     </div>
 
     <script>
+        // ===================
+        // User Authentication
+        // ===================
+        const currentUser = window.AUTH_USER || null;
+
+        function initUserInfo() {
+            if (currentUser) {
+                const userInfo = document.getElementById('userInfo');
+                const userAvatar = document.getElementById('userAvatar');
+                const userName = document.getElementById('userName');
+
+                if (currentUser.picture) {
+                    userAvatar.src = currentUser.picture;
+                    userAvatar.style.display = 'block';
+                } else {
+                    userAvatar.style.display = 'none';
+                }
+
+                userName.textContent = currentUser.name || currentUser.email;
+                userInfo.style.display = 'flex';
+
+                // Set user in BritePulse for feedback attribution
+                if (window.BritePulse) {
+                    window.BritePulse.getInstance()?.setUser({
+                        id: currentUser.email,
+                        email: currentUser.email
+                    });
+                }
+            }
+        }
+
+        function logout() {
+            window.location.href = '/auth/logout';
+        }
+
+        // Initialize user info on load
+        initUserInfo();
+
         // ===================
         // State Management
         // ===================
