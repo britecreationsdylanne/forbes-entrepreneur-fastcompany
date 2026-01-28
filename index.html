@@ -778,6 +778,121 @@
             color: rgba(255,255,255,0.7);
             font-size: 1.1rem;
             padding: 40px;
+            grid-column: 1 / -1;
+        }
+
+        /* Saved Topics Toggle */
+        .saved-topics-toggle {
+            background: #fefce8;
+            border: 1px solid #facc15;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #854d0e;
+            margin-right: 15px;
+        }
+
+        .saved-topics-toggle:hover {
+            background: #fef08a;
+        }
+
+        .saved-topics-panel {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 20px;
+            width: 400px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: #fffef5;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .saved-topics-panel.visible {
+            display: block;
+        }
+
+        .saved-topics-panel h4 {
+            margin: 0 0 15px 0;
+            color: #854d0e;
+            font-size: 14px;
+        }
+
+        .saved-topic-item {
+            background: white;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .saved-topic-item h5 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: var(--dark);
+            padding-right: 30px;
+        }
+
+        .saved-topic-item p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        .saved-topic-item .use-topic-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .saved-topic-item .remove-saved-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* Pin button on topic cards */
+        .topic-card {
+            position: relative;
+        }
+
+        .pin-topic-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+
+        .pin-topic-btn:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .pin-topic-btn.pinned {
+            opacity: 1;
+            color: #facc15;
         }
 
         /* Responsive */
@@ -809,8 +924,15 @@
     <header class="header">
         <h1>CEO Article Generator</h1>
         <div class="user-info" id="userInfo">
+            <button class="saved-topics-toggle" id="savedTopicsToggle" onclick="toggleSavedTopicsPanel()">
+                📌 Saved Topics (<span id="savedTopicsCount">0</span>)
+            </button>
             <img class="user-avatar" id="userAvatar" src="" alt="">
             <span class="user-name" id="userName"></span>
+        </div>
+        <div class="saved-topics-panel" id="savedTopicsPanel">
+            <h4>📌 Saved Topics Bank</h4>
+            <div id="savedTopicsList">No saved topics yet</div>
         </div>
     </header>
 
@@ -1151,6 +1273,95 @@
         };
 
         // ===================
+        // Saved Topics Management
+        // ===================
+        let savedTopics = JSON.parse(localStorage.getItem('savedTopics') || '[]');
+
+        function updateSavedTopicsCount() {
+            document.getElementById('savedTopicsCount').textContent = savedTopics.length;
+        }
+
+        function toggleSavedTopicsPanel() {
+            const panel = document.getElementById('savedTopicsPanel');
+            panel.classList.toggle('visible');
+            renderSavedTopics();
+        }
+
+        function saveTopic(topic) {
+            // Check if already saved
+            if (savedTopics.find(t => t.headline === topic.headline)) {
+                return false;
+            }
+            savedTopics.push({
+                ...topic,
+                savedAt: new Date().toISOString(),
+                publication: state.publication,
+                month: state.month
+            });
+            localStorage.setItem('savedTopics', JSON.stringify(savedTopics));
+            updateSavedTopicsCount();
+            return true;
+        }
+
+        function removeSavedTopic(index) {
+            savedTopics.splice(index, 1);
+            localStorage.setItem('savedTopics', JSON.stringify(savedTopics));
+            updateSavedTopicsCount();
+            renderSavedTopics();
+            renderTopics(); // Re-render to update pin states
+        }
+
+        function isTopicSaved(headline) {
+            return savedTopics.some(t => t.headline === headline);
+        }
+
+        function useSavedTopic(index) {
+            const topic = savedTopics[index];
+            state.selectedTopic = topic;
+            document.getElementById('step2Next').disabled = false;
+
+            // Close panel and show feedback
+            document.getElementById('savedTopicsPanel').classList.remove('visible');
+
+            // Update UI to show selection
+            document.querySelectorAll('.topic-card').forEach(c => c.classList.remove('selected'));
+            alert(`Topic "${topic.headline}" selected! Click "Continue to Recording" to proceed.`);
+        }
+
+        function renderSavedTopics() {
+            const container = document.getElementById('savedTopicsList');
+            if (savedTopics.length === 0) {
+                container.innerHTML = '<p style="color: #854d0e; font-size: 13px;">No saved topics yet. Click 📌 on any topic to save it for later.</p>';
+                return;
+            }
+
+            container.innerHTML = savedTopics.map((topic, i) => `
+                <div class="saved-topic-item">
+                    <button class="remove-saved-btn" onclick="removeSavedTopic(${i})">×</button>
+                    <h5>${topic.headline}</h5>
+                    <p>${topic.angle || ''}</p>
+                    <p style="color: #facc15; font-size: 11px; margin-top: 4px;">
+                        ${topic.publication ? topic.publication.charAt(0).toUpperCase() + topic.publication.slice(1) : ''}
+                        ${topic.month || ''}
+                    </p>
+                    <button class="use-topic-btn" onclick="useSavedTopic(${i})">Use This Topic</button>
+                </div>
+            `).join('');
+        }
+
+        // Initialize saved topics count
+        updateSavedTopicsCount();
+
+        // Close saved topics panel when clicking outside
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('savedTopicsPanel');
+            const toggle = document.getElementById('savedTopicsToggle');
+            if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+                panel.classList.remove('visible');
+            }
+        });
+
+        // ===================
         // DOM Elements
         // ===================
         const elements = {
@@ -1175,16 +1386,17 @@
                 if (sNum === stepNum) s.classList.add('active');
             });
 
-            // Show/hide save bar (hide on step 1)
+            // Show/hide save bar (hide on steps 1-3, show after recording)
             const saveBar = document.getElementById('saveBar');
-            if (stepNum === 1) {
+            if (stepNum <= 3) {
                 saveBar.classList.remove('visible');
             } else {
                 saveBar.classList.add('visible');
             }
 
             state.currentStep = stepNum;
-            if (stepNum > 1) saveDraft();
+            // Only auto-save drafts after recording (step 3+)
+            if (stepNum > 3) saveDraft();
         }
 
         function showAlert(container, message, type = 'info') {
@@ -1530,6 +1742,11 @@
             const container = document.getElementById('topicCards');
             container.innerHTML = state.topics.map((topic, i) => `
                 <div class="topic-card" data-index="${i}">
+                    <button class="pin-topic-btn ${isTopicSaved(topic.headline) ? 'pinned' : ''}"
+                            onclick="event.stopPropagation(); togglePinTopic(${i})"
+                            title="${isTopicSaved(topic.headline) ? 'Remove from saved' : 'Save for later'}">
+                        ${isTopicSaved(topic.headline) ? '📌' : '📍'}
+                    </button>
                     <h4>${topic.headline}</h4>
                     <p>${topic.angle}</p>
                     <p class="timeliness">⏰ ${topic.timeliness}</p>
@@ -1539,7 +1756,10 @@
             document.getElementById('topicsContainer').style.display = 'block';
 
             container.querySelectorAll('.topic-card').forEach(card => {
-                card.addEventListener('click', () => {
+                card.addEventListener('click', (e) => {
+                    // Don't select if clicking pin button
+                    if (e.target.classList.contains('pin-topic-btn')) return;
+
                     container.querySelectorAll('.topic-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                     const index = parseInt(card.dataset.index);
@@ -1547,6 +1767,21 @@
                     document.getElementById('step2Next').disabled = false;
                 });
             });
+        }
+
+        function togglePinTopic(index) {
+            const topic = state.topics[index];
+            if (isTopicSaved(topic.headline)) {
+                // Remove from saved
+                const savedIndex = savedTopics.findIndex(t => t.headline === topic.headline);
+                if (savedIndex > -1) {
+                    removeSavedTopic(savedIndex);
+                }
+            } else {
+                // Save topic
+                saveTopic(topic);
+                renderTopics(); // Re-render to show pinned state
+            }
         }
 
         // Custom topic
