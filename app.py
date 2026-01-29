@@ -403,7 +403,7 @@ def generate_topics():
         """
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-opus-4-5-20251101",
             max_tokens=3000,
             messages=[
                 {"role": "user", "content": prompt}
@@ -475,7 +475,7 @@ def refine_topic():
         """
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-opus-4-5-20251101",
             max_tokens=1000,
             messages=[
                 {"role": "user", "content": prompt}
@@ -500,6 +500,67 @@ def refine_topic():
         return jsonify({
             'success': True,
             'topic': topic
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate-talking-points', methods=['POST'])
+def generate_talking_points():
+    """Generate AI talking points and thought questions for a selected topic"""
+    data = request.json
+    publication = data.get('publication')
+    topic = data.get('topic', {})
+
+    try:
+        style_guide = load_style_guide(publication)
+        client = get_anthropic_client()
+
+        prompt = f"""
+        Generate 5-7 talking points and thought-provoking questions for a CEO who is about to record their thoughts on this topic for a {publication} article.
+
+        TOPIC:
+        Headline: {topic.get('headline', '')}
+        Angle: {topic.get('angle', '')}
+        BriteCo Connection: {topic.get('briteco_connection', '')}
+
+        PUBLICATION: {style_guide.get('publication_full_name', publication)}
+        AUTHOR: Dustin Lemick, CEO of BriteCo (jewelry/watch insurance, insurtech)
+
+        Generate a mix of:
+        - Key talking points to cover (things the CEO should address)
+        - Thought-provoking questions to spark ideas (starting with "What...", "How...", "When...")
+        - A prompt about a personal story or BriteCo example they could share
+
+        Return as a JSON array of objects, each with:
+        - "type": either "talking_point" or "question"
+        - "text": the talking point or question text
+
+        Keep each item concise (1-2 sentences max). Focus on substance, not platitudes.
+        """
+
+        response = client.messages.create(
+            model="claude-opus-4-5-20251101",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = response.content[0].text
+
+        try:
+            start_idx = response_text.find('[')
+            end_idx = response_text.rfind(']') + 1
+            if start_idx != -1 and end_idx > start_idx:
+                points = json.loads(response_text[start_idx:end_idx])
+            else:
+                points = []
+        except json.JSONDecodeError:
+            points = [{"type": "talking_point", "text": response_text}]
+
+        return jsonify({
+            'success': True,
+            'talking_points': points,
+            'topic': topic.get('headline', '')
         })
 
     except Exception as e:
@@ -603,7 +664,7 @@ def generate_article():
         """
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-opus-4-5-20251101",
             max_tokens=4000,
             messages=[
                 {"role": "user", "content": prompt}
@@ -657,7 +718,7 @@ def rewrite_article():
         """
 
         response = client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-opus-4-5-20251101",
             max_tokens=4000,
             messages=[
                 {"role": "user", "content": prompt}

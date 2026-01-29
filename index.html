@@ -515,6 +515,98 @@
             border-top: 1px solid var(--border);
         }
 
+        /* Step 3 Split Layout */
+        .step3-split-layout {
+            display: flex;
+            gap: 24px;
+            margin: 20px 0;
+        }
+
+        .step3-split-layout .recording-side {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .step3-split-layout .talking-points-side {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .talking-points-panel {
+            background: linear-gradient(135deg, #f0fafa 0%, #f5f7fa 100%);
+            border: 2px solid #e0f0f0;
+            border-radius: 12px;
+            padding: 24px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .talking-points-panel h3 {
+            color: var(--primary);
+            margin: 0 0 16px 0;
+            font-size: 1.1rem;
+        }
+
+        .talking-point-item {
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            background: white;
+        }
+
+        .talking-point-item.type-talking_point {
+            border-left: 4px solid var(--primary);
+        }
+
+        .talking-point-item.type-question {
+            border-left: 4px solid var(--secondary);
+            font-style: italic;
+        }
+
+        .talking-points-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+
+        .talking-points-loading .spinner {
+            width: 30px;
+            height: 30px;
+            margin: 0 auto 12px;
+        }
+
+        /* Cancel Recording Button */
+        .cancel-record-btn {
+            display: none;
+            background: transparent;
+            border: 2px solid var(--danger);
+            color: var(--danger);
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+
+        .cancel-record-btn:hover {
+            background: var(--danger);
+            color: var(--white);
+        }
+
+        .cancel-record-btn.visible {
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .step3-split-layout {
+                flex-direction: column;
+            }
+        }
+
         /* Article Editor */
         .article-editor {
             border: 2px solid var(--border);
@@ -1199,21 +1291,40 @@
             <h2>Record Your Thoughts</h2>
             <p style="color: var(--gray); margin-bottom: 10px;">Selected Topic: <strong id="selectedTopicDisplay"></strong></p>
 
-            <div class="recording-container">
-                <p>Click to start recording your thoughts on this topic. Speak freely - the AI will shape it into an article.</p>
+            <div class="step3-split-layout">
+                <!-- LEFT: Recording controls -->
+                <div class="recording-side">
+                    <div class="recording-container">
+                        <p>Click to start recording your thoughts on this topic. Speak freely - the AI will shape it into an article.</p>
 
-                <button class="record-btn" id="recordBtn">🎙️</button>
+                        <button class="record-btn" id="recordBtn">🎙️</button>
 
-                <div class="recording-time" id="recordingTime">00:00 / 10:00</div>
+                        <div class="recording-time" id="recordingTime">00:00 / 10:00</div>
 
-                <p id="recordingStatus">Click to start recording</p>
+                        <p id="recordingStatus">Click to start recording</p>
+                        <button class="cancel-record-btn" id="cancelRecordBtn">✕ Cancel Recording</button>
 
-                <div class="upload-area">
-                    <p>Or upload an existing recording:</p>
-                    <input type="file" id="audioUpload" accept="audio/*,video/mp4,.webm,.mp3,.m4a,.wav,.mp4" style="margin-top: 10px;">
-                    <div id="uploadStatus" style="display: none; margin-top: 12px; padding: 10px; background: rgba(0, 129, 129, 0.1); border-radius: 8px; color: var(--primary); font-weight: 500;">
-                        <span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px; vertical-align: middle; margin-right: 8px;"></span>
-                        <span id="uploadStatusText">Transcribing audio...</span>
+                        <div class="upload-area">
+                            <p>Or upload an existing recording:</p>
+                            <input type="file" id="audioUpload" accept="audio/*,video/mp4,.webm,.mp3,.m4a,.wav,.mp4" style="margin-top: 10px;">
+                            <div id="uploadStatus" style="display: none; margin-top: 12px; padding: 10px; background: rgba(0, 129, 129, 0.1); border-radius: 8px; color: var(--primary); font-weight: 500;">
+                                <span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px; vertical-align: middle; margin-right: 8px;"></span>
+                                <span id="uploadStatusText">Transcribing audio...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: AI Talking Points -->
+                <div class="talking-points-side">
+                    <div class="talking-points-panel" id="talkingPointsPanel">
+                        <h3>💡 Talking Points & Questions</h3>
+                        <div id="talkingPointsContent">
+                            <div class="talking-points-loading">
+                                <div class="spinner"></div>
+                                <p>Generating talking points...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1222,6 +1333,7 @@
                 <h3>Transcription</h3>
                 <div class="transcription-box" id="transcriptionBox"></div>
                 <div class="btn-group" style="margin-top: 15px;">
+                    <button class="btn btn-outline" id="startOverRecording">🔄 Start Over</button>
                     <button class="btn btn-outline" id="step3Back">← Back</button>
                     <button class="btn btn-outline" id="editTranscription">Edit</button>
                     <button class="btn btn-secondary" id="exportTranscription">Export to Google Docs</button>
@@ -1683,13 +1795,13 @@
         const defaultRecipients = {
             draft: [
                 { email: 'dylanne.crugnale@brite.co', name: 'Dylanne Crugnale', checked: true },
-                { email: 'dustin@brite.co', name: 'Dustin Lemick', checked: true },
+                { email: 'dustin.lemick@brite.co', name: 'Dustin Lemick', checked: true },
                 { email: 'dove@brite.co', name: 'Dove Tugadi', checked: false },
                 { email: 'selena.fragassi@brite.co', name: 'Selena Fragassi', checked: false }
             ],
             final: [
                 { email: 'dylanne.crugnale@brite.co', name: 'Dylanne Crugnale', checked: true },
-                { email: 'dustin@brite.co', name: 'Dustin Lemick', checked: true },
+                { email: 'dustin.lemick@brite.co', name: 'Dustin Lemick', checked: true },
                 { email: 'dove@brite.co', name: 'Dove Tugadi', checked: true },
                 { email: 'selena.fragassi@brite.co', name: 'Selena Fragassi', checked: true }
             ]
@@ -2105,6 +2217,7 @@
         document.getElementById('step2Next').addEventListener('click', () => {
             document.getElementById('selectedTopicDisplay').textContent = state.selectedTopic.headline;
             showPanel(3);
+            loadTalkingPoints();
         });
 
         // ===================
@@ -2127,6 +2240,7 @@
                 recordBtn.textContent = '🎙️';
                 recordingStatus.textContent = 'Processing...';
                 clearInterval(recordingInterval);
+                document.getElementById('cancelRecordBtn').classList.remove('visible');
             } else {
                 // Start recording
                 try {
@@ -2146,6 +2260,7 @@
                     recordBtn.classList.add('recording');
                     recordBtn.textContent = '⏹️';
                     recordingStatus.textContent = 'Recording... Click to stop';
+                    document.getElementById('cancelRecordBtn').classList.add('visible');
 
                     recordingSeconds = 0;
                     recordingInterval = setInterval(() => {
@@ -2207,6 +2322,78 @@
                 recordingStatus.textContent = 'Error transcribing: ' + err.message;
             }
         }
+
+        // Load talking points when entering step 3
+        async function loadTalkingPoints() {
+            const content = document.getElementById('talkingPointsContent');
+            content.innerHTML = `
+                <div class="talking-points-loading">
+                    <div class="spinner"></div>
+                    <p>Generating talking points...</p>
+                </div>
+            `;
+
+            try {
+                const result = await apiCall('/generate-talking-points', 'POST', {
+                    publication: state.publication,
+                    topic: state.selectedTopic
+                });
+
+                if (result.success && result.talking_points && result.talking_points.length > 0) {
+                    content.innerHTML = result.talking_points.map(point => `
+                        <div class="talking-point-item type-${point.type}">
+                            ${point.type === 'question' ? '❓ ' : '📌 '}${point.text}
+                        </div>
+                    `).join('');
+                } else {
+                    content.innerHTML = '<p style="color: var(--gray); padding: 20px;">Could not generate talking points. You can still record freely!</p>';
+                }
+            } catch (err) {
+                content.innerHTML = '<p style="color: var(--gray); padding: 20px;">Could not generate talking points. You can still record freely!</p>';
+            }
+        }
+
+        // Cancel recording - discard and reset
+        document.getElementById('cancelRecordBtn').addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.ondataavailable = () => {};
+                mediaRecorder.onstop = () => {
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                };
+                mediaRecorder.stop();
+            }
+
+            audioChunks = [];
+            recordingSeconds = 0;
+            clearInterval(recordingInterval);
+
+            recordBtn.classList.remove('recording');
+            recordBtn.textContent = '🎙️';
+            recordingTime.textContent = '00:00 / 10:00';
+            recordingStatus.textContent = 'Click to start recording';
+            document.getElementById('cancelRecordBtn').classList.remove('visible');
+        });
+
+        // Start over - discard transcription and reset to fresh recording state
+        document.getElementById('startOverRecording').addEventListener('click', () => {
+            state.transcription = null;
+            state.audioBlob = null;
+            audioChunks = [];
+            recordingSeconds = 0;
+
+            document.getElementById('transcriptionContainer').style.display = 'none';
+            document.getElementById('transcriptionBox').textContent = '';
+            document.getElementById('step3BtnGroup').style.display = '';
+            document.getElementById('step3Next').disabled = true;
+            recordBtn.classList.remove('recording');
+            recordBtn.textContent = '🎙️';
+            recordingTime.textContent = '00:00 / 10:00';
+            recordingStatus.textContent = 'Click to start recording';
+            document.getElementById('uploadStatus').style.display = 'none';
+            document.getElementById('audioUpload').value = '';
+            document.getElementById('transcriptionExportResult').innerHTML = '';
+            document.getElementById('cancelRecordBtn').classList.remove('visible');
+        });
 
         document.getElementById('editTranscription').addEventListener('click', () => {
             const box = document.getElementById('transcriptionBox');
@@ -2550,6 +2737,8 @@
             document.getElementById('recordingTime').textContent = '00:00 / 10:00';
             document.getElementById('transcriptionExportResult').innerHTML = '';
             document.getElementById('audioUpload').value = '';
+            document.getElementById('cancelRecordBtn').classList.remove('visible');
+            document.getElementById('talkingPointsContent').innerHTML = '';
 
             // Reset step 5/6 editors
             document.getElementById('articleEditor').innerHTML = '';
