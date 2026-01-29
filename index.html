@@ -863,51 +863,6 @@
             grid-column: 1 / -1;
         }
 
-        /* Saved Topics Sidebar Items */
-        .saved-topic-item {
-            background: white;
-            border: 1px solid #fde68a;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 10px;
-            position: relative;
-        }
-
-        .saved-topic-item h5 {
-            margin: 0 0 5px 0;
-            font-size: 14px;
-            color: var(--dark);
-            padding-right: 30px;
-        }
-
-        .saved-topic-item p {
-            margin: 0;
-            font-size: 12px;
-            color: var(--gray);
-        }
-
-        .saved-topic-item .use-topic-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        .saved-topic-item .remove-saved-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: none;
-            border: none;
-            color: #dc3545;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
         /* Pin button on topic cards */
         .topic-card {
             position: relative;
@@ -1429,6 +1384,20 @@
         </div>
     </div>
 
+    <!-- Saved Topics Modal -->
+    <div class="modal-overlay" id="savedTopicsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Saved Topics</h3>
+                <button class="modal-close" id="closeSavedTopicsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Topics saved for future articles. Click "Use" to select one for your current article.</p>
+                <div id="savedTopicsList2"></div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===================
         // User Authentication
@@ -1437,18 +1406,6 @@
 
         function initUserInfo() {
             if (currentUser) {
-                const userInfo = document.getElementById('userInfo');
-                const userAvatar = document.getElementById('userAvatar');
-
-                if (currentUser.picture) {
-                    userAvatar.src = currentUser.picture;
-                    userAvatar.style.display = 'block';
-                } else {
-                    userAvatar.style.display = 'none';
-                }
-
-                userInfo.style.display = 'flex';
-
                 // Set user in BritePulse for feedback attribution
                 if (window.BritePulse) {
                     window.BritePulse.getInstance()?.setUser({
@@ -1558,8 +1515,12 @@
             state.selectedTopic = topic;
             document.getElementById('step2Next').disabled = false;
 
+            // Close modal
+            document.getElementById('savedTopicsModal').classList.remove('active');
+
             // Update UI to show selection
             document.querySelectorAll('.topic-card').forEach(c => c.classList.remove('selected'));
+            renderTopics();
             alert(`Topic "${topic.headline}" selected! Click "Continue to Recording" to proceed.`);
         }
 
@@ -1567,24 +1528,25 @@
             const container = document.getElementById('savedTopicsList2');
             const pubName = state.publication ? state.publication.charAt(0).toUpperCase() + state.publication.slice(1) : '';
 
-            // Update sidebar header with publication name
-            document.getElementById('savedTopicsPubName2').textContent = `Saved ${pubName} Topics`;
-
             if (savedTopics.length === 0) {
-                container.innerHTML = `<p style="color: #854d0e; font-size: 13px;">No saved ${pubName} topics yet. Click 📌 on any topic to save it for later.</p>`;
+                container.innerHTML = `<p style="color: #6b7280; font-size: 14px;">No saved ${pubName} topics yet. Click 📌 on any topic to save it for later.</p>`;
                 return;
             }
 
             container.innerHTML = savedTopics.map((topic, i) => `
                 <div class="saved-topic-item">
-                    <button class="remove-saved-btn" onclick="removeSavedTopic(${i})">×</button>
-                    <h5>${topic.headline}</h5>
-                    <p>${topic.angle || ''}</p>
-                    <p style="color: #92400e; font-size: 11px; margin-top: 4px;">
-                        ${topic.month || ''}
-                        ${topic.savedBy ? '• ' + topic.savedBy.split('@')[0] : ''}
-                    </p>
-                    <button class="use-topic-btn" onclick="useSavedTopic(${i})">Use This Topic</button>
+                    <div class="topic-info">
+                        <div class="topic-headline">${topic.headline}</div>
+                        <div class="topic-meta">
+                            ${topic.angle ? topic.angle.substring(0, 80) + (topic.angle.length > 80 ? '...' : '') : ''}
+                            ${topic.month ? ' • ' + topic.month : ''}
+                            ${topic.savedBy ? ' • ' + topic.savedBy.split('@')[0] : ''}
+                        </div>
+                    </div>
+                    <div class="topic-actions">
+                        <button class="use-btn" onclick="useSavedTopic(${i})">Use</button>
+                        <button class="delete-btn" onclick="removeSavedTopic(${i})">×</button>
+                    </div>
                 </div>
             `).join('');
         }
@@ -2215,6 +2177,7 @@
                     state.transcription = result.transcription;
                     document.getElementById('transcriptionBox').textContent = state.transcription;
                     document.getElementById('transcriptionContainer').style.display = 'block';
+                    document.getElementById('step3BtnGroup').style.display = 'none';
                     document.getElementById('step3Next').disabled = false;
                     recordingStatus.textContent = 'Transcription complete!';
                 } else {
@@ -2558,6 +2521,25 @@
             await saveDraft();
             btn.disabled = false;
             btn.textContent = '💾 Save Draft';
+        });
+
+        // ===================
+        // Saved Topics Modal Toggle
+        // ===================
+        document.getElementById('savedTopicsBtn').addEventListener('click', () => {
+            renderSavedTopics();
+            document.getElementById('savedTopicsModal').classList.add('active');
+        });
+
+        document.getElementById('closeSavedTopicsModal').addEventListener('click', () => {
+            document.getElementById('savedTopicsModal').classList.remove('active');
+        });
+
+        // Close modal on overlay click
+        document.getElementById('savedTopicsModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                e.currentTarget.classList.remove('active');
+            }
         });
 
         // ===================
