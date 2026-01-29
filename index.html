@@ -434,11 +434,32 @@
         }
 
         .topic-card {
+            position: relative;
             border: 2px solid var(--border);
             border-radius: 10px;
             padding: 20px;
             cursor: pointer;
             transition: all 0.3s;
+        }
+
+        .vary-topic-btn {
+            position: absolute;
+            top: 10px;
+            right: 42px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0.4;
+            transition: all 0.2s;
+            width: 28px;
+            height: 28px;
+            title: "Generate variations";
+        }
+
+        .vary-topic-btn:hover {
+            opacity: 1;
+            transform: scale(1.2);
         }
 
         .topic-card:hover {
@@ -991,18 +1012,27 @@
             width: 20px;
             height: 20px;
             cursor: pointer;
-            accent-color: #008181;
+            accent-color: var(--primary);
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
-            border: 2px solid #008181;
+            border: 2px solid var(--primary);
             border-radius: 4px;
             background: white;
+            outline: none;
         }
 
         .topic-checkbox:checked {
-            background: #008181;
+            background: var(--primary);
+            border-color: var(--primary);
             background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+        }
+
+        .topic-checkbox:focus {
+            box-shadow: 0 0 0 2px rgba(0, 129, 129, 0.25);
         }
 
         .topic-card.selected {
@@ -1391,10 +1421,11 @@
 
                     <div id="topicsContainer" style="display: none;">
                         <h3>Generated Topic Ideas</h3>
-                        <p style="color: var(--gray); margin-bottom: 15px;">☑️ Check to use • 📌 Pin to save for later</p>
+                        <p style="color: var(--gray); margin-bottom: 15px;">☑️ Check to use • 🔄 Generate variations • 📌 Pin to save</p>
                         <div class="topic-cards" id="topicCards"></div>
-                        <div id="variationsBtn" style="display: none; margin-top: 15px; text-align: center;">
-                            <button class="btn btn-outline" id="generateVariationsBtn">🔄 Generate 10 Variations on This Theme</button>
+                        <div id="variationsLoading" style="display: none; text-align: center; padding: 30px;">
+                            <div class="spinner"></div>
+                            <p style="color: var(--gray); margin-top: 10px;">Generating 10 variations on this theme...</p>
                         </div>
                     </div>
 
@@ -1814,7 +1845,6 @@
             const topic = savedTopics[index];
             state.selectedTopic = topic;
             document.getElementById('step2Next').disabled = false;
-            document.getElementById('variationsBtn').style.display = 'block';
 
             // Close modal
             document.getElementById('savedTopicsModal').classList.remove('active');
@@ -2397,6 +2427,11 @@
                            ${selected ? 'checked' : ''}
                            onclick="event.stopPropagation(); toggleTopicSelection(${i})"
                            title="Use this topic">
+                    <button class="vary-topic-btn"
+                            onclick="event.stopPropagation(); generateVariationsFor(${i})"
+                            title="Generate 10 variations on this theme">
+                        🔄
+                    </button>
                     <button class="pin-topic-btn ${isSaved ? 'pinned' : ''}"
                             onclick="event.stopPropagation(); ${isSaved ? '' : `togglePinTopic(${i})`}"
                             title="${isSaved ? 'Saved for later' : 'Save for later'}"
@@ -2419,12 +2454,10 @@
                 // Unselect
                 state.selectedTopic = null;
                 document.getElementById('step2Next').disabled = true;
-                document.getElementById('variationsBtn').style.display = 'none';
             } else {
                 // Select this topic
                 state.selectedTopic = topic;
                 document.getElementById('step2Next').disabled = false;
-                document.getElementById('variationsBtn').style.display = 'block';
             }
             renderTopics();
         }
@@ -2438,32 +2471,33 @@
             renderTopics(); // Re-render to show pinned state
         }
 
-        // Generate variations on selected topic
-        document.getElementById('generateVariationsBtn').addEventListener('click', async () => {
-            if (!state.selectedTopic) return;
+        // Generate variations for a specific topic
+        async function generateVariationsFor(index) {
+            const topic = state.topics[index];
+            const loading = document.getElementById('variationsLoading');
+            const cardsContainer = document.getElementById('topicCards');
 
-            const btn = document.getElementById('generateVariationsBtn');
-            btn.disabled = true;
-            btn.textContent = '🔄 Generating variations...';
+            // Show loading, hide cards
+            cardsContainer.style.display = 'none';
+            loading.style.display = 'block';
 
             const result = await apiCall('/generate-variations', 'POST', {
                 publication: state.publication,
-                topic: state.selectedTopic
+                topic: topic
             });
 
-            btn.disabled = false;
-            btn.textContent = '🔄 Generate 10 Variations on This Theme';
+            loading.style.display = 'none';
+            cardsContainer.style.display = '';
 
             if (result.success && result.topics && result.topics.length > 0) {
                 state.selectedTopic = null;
                 document.getElementById('step2Next').disabled = true;
-                document.getElementById('variationsBtn').style.display = 'none';
                 state.topics = result.topics;
                 renderTopics();
             } else {
                 alert('Error generating variations: ' + (result.error || 'Unknown error'));
             }
-        });
+        }
 
         // Custom topic
         document.getElementById('customHeadline').addEventListener('input', checkCustomTopic);
@@ -2522,9 +2556,13 @@
             // Build direction paragraph from topic data
             const topic = state.selectedTopic;
             const pubName = formatPubName(state.publication);
-            let direction = `<strong>Goal:</strong> Record your thoughts for a ${pubName} article on "${topic.headline}."`;
-            if (topic.angle) direction += ` <strong>Angle:</strong> ${topic.angle}`;
-            if (topic.briteco_connection) direction += ` <strong>BriteCo tie-in:</strong> ${topic.briteco_connection}`;
+            let direction = `<strong style="font-size: 1.05rem;">Article Direction</strong><br>`;
+            direction += `You're recording for a <strong>${pubName}</strong> thought leadership piece. The AI will turn your recording into a polished article, so speak naturally and share real experiences.<br><br>`;
+            direction += `<strong>Headline:</strong> ${topic.headline}<br>`;
+            if (topic.angle) direction += `<strong>Angle:</strong> ${topic.angle}<br>`;
+            if (topic.timeliness) direction += `<strong>Why now:</strong> ${topic.timeliness}<br>`;
+            if (topic.briteco_connection) direction += `<strong>BriteCo tie-in:</strong> ${topic.briteco_connection}<br>`;
+            direction += `<br><em style="color: var(--gray);">Tip: Share specific examples, data points, or personal stories. The more concrete detail you give, the stronger the article will be.</em>`;
             document.getElementById('topicDirectionText').innerHTML = direction;
             document.getElementById('topicDirectionBox').style.display = 'block';
 
