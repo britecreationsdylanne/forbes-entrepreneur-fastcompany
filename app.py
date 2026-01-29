@@ -1335,14 +1335,14 @@ def send_notification():
                     <p class="status">{status_text}</p>
 
                     <div class="details">
-                        <p><strong>Publication:</strong> {publication}</p>
+                        <p><strong>Publication:</strong> {pub_display_name}</p>
                         <p><strong>Month:</strong> {month} {year}</p>
                         <p><strong>Title:</strong> {title}</p>
                     </div>
 
-                    <p>{"This article is finalized and ready for submission to " + publication + "." if notification_type == 'final' else "Please review this draft and make any necessary edits."}</p>
+                    <p>{"This article is finalized and ready for submission to " + pub_display_name + "." if notification_type == 'final' else "Please review this draft and make any necessary edits."}</p>
 
-                    <a href="{doc_url}" class="button">Open in Google Docs</a>
+                    <a href="{doc_url}" class="button" style="color: white;">Open in Google Docs</a>
 
                     <p style="margin-top: 30px; font-size: 12px; color: #666;">
                         This email was sent by the CEO Article Generator tool.

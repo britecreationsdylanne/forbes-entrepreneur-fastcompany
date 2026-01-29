@@ -1211,6 +1211,10 @@
                 <div class="upload-area">
                     <p>Or upload an existing recording:</p>
                     <input type="file" id="audioUpload" accept="audio/*,video/mp4,.webm,.mp3,.m4a,.wav,.mp4" style="margin-top: 10px;">
+                    <div id="uploadStatus" style="display: none; margin-top: 12px; padding: 10px; background: rgba(0, 129, 129, 0.1); border-radius: 8px; color: var(--primary); font-weight: 500;">
+                        <span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px; vertical-align: middle; margin-right: 8px;"></span>
+                        <span id="uploadStatusText">Transcribing audio...</span>
+                    </div>
                 </div>
             </div>
 
@@ -1284,7 +1288,6 @@
 
             <div class="btn-group" style="margin-bottom: 30px;">
                 <button class="btn btn-outline" id="rewriteBtn">🔄 Rewrite with AI</button>
-                <button class="btn btn-primary" id="saveDraftStep5Btn">💾 Save Draft</button>
             </div>
 
             <div class="export-options">
@@ -1518,10 +1521,13 @@
             // Close modal
             document.getElementById('savedTopicsModal').classList.remove('active');
 
-            // Update UI to show selection
-            document.querySelectorAll('.topic-card').forEach(c => c.classList.remove('selected'));
+            // Add to generated topics list if not already there
+            if (!state.topics.find(t => t.headline === topic.headline)) {
+                state.topics.unshift(topic);
+            }
+
+            // Show and render topics
             renderTopics();
-            alert(`Topic "${topic.headline}" selected! Click "Continue to Recording" to proceed.`);
         }
 
         function renderSavedTopics() {
@@ -2164,7 +2170,9 @@
             const file = e.target.files[0];
             if (file) {
                 state.audioBlob = file;
-                recordingStatus.textContent = 'Starting transcription...';
+                document.getElementById('uploadStatus').style.display = 'block';
+                document.getElementById('uploadStatusText').textContent = 'Transcribing audio...';
+                recordingStatus.textContent = '';
                 await transcribeAudio();
             }
         });
@@ -2188,11 +2196,14 @@
                     document.getElementById('transcriptionContainer').style.display = 'block';
                     document.getElementById('step3BtnGroup').style.display = 'none';
                     document.getElementById('step3Next').disabled = false;
+                    document.getElementById('uploadStatus').style.display = 'none';
                     recordingStatus.textContent = 'Transcription complete!';
                 } else {
+                    document.getElementById('uploadStatus').style.display = 'none';
                     recordingStatus.textContent = 'Error: ' + result.error;
                 }
             } catch (err) {
+                document.getElementById('uploadStatus').style.display = 'none';
                 recordingStatus.textContent = 'Error transcribing: ' + err.message;
             }
         }
@@ -2553,14 +2564,6 @@
         });
 
         document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
-        document.getElementById('saveDraftStep5Btn').addEventListener('click', async () => {
-            const btn = document.getElementById('saveDraftStep5Btn');
-            btn.disabled = true;
-            btn.textContent = 'Saving...';
-            await saveDraft();
-            btn.disabled = false;
-            btn.textContent = '💾 Save Draft';
-        });
 
         // ===================
         // Saved Topics Modal Toggle
