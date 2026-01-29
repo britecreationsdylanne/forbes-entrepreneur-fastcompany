@@ -1306,7 +1306,10 @@
 
                         <div class="upload-area">
                             <p>Or upload an existing recording:</p>
-                            <input type="file" id="audioUpload" accept="audio/*,video/mp4,.webm,.mp3,.m4a,.wav,.mp4" style="margin-top: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                                <input type="file" id="audioUpload" accept="audio/*,video/mp4,.webm,.mp3,.m4a,.wav,.mp4">
+                                <button id="clearUploadBtn" style="display: none; background: none; border: 2px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; white-space: nowrap;">✕ Clear</button>
+                            </div>
                             <div id="uploadStatus" style="display: none; margin-top: 12px; padding: 10px; background: rgba(0, 129, 129, 0.1); border-radius: 8px; color: var(--primary); font-weight: 500;">
                                 <span class="spinner" style="display: inline-block; width: 16px; height: 16px; border-width: 2px; vertical-align: middle; margin-right: 8px;"></span>
                                 <span id="uploadStatusText">Transcribing audio...</span>
@@ -2285,11 +2288,21 @@
             const file = e.target.files[0];
             if (file) {
                 state.audioBlob = file;
+                document.getElementById('clearUploadBtn').style.display = 'inline-block';
                 document.getElementById('uploadStatus').style.display = 'block';
                 document.getElementById('uploadStatusText').textContent = 'Transcribing audio...';
                 recordingStatus.textContent = '';
                 await transcribeAudio();
             }
+        });
+
+        // Clear uploaded file
+        document.getElementById('clearUploadBtn').addEventListener('click', () => {
+            document.getElementById('audioUpload').value = '';
+            document.getElementById('clearUploadBtn').style.display = 'none';
+            document.getElementById('uploadStatus').style.display = 'none';
+            state.audioBlob = null;
+            recordingStatus.textContent = 'Click to start recording';
         });
 
         async function transcribeAudio() {
@@ -2312,6 +2325,7 @@
                     document.getElementById('step3BtnGroup').style.display = 'none';
                     document.getElementById('step3Next').disabled = false;
                     document.getElementById('uploadStatus').style.display = 'none';
+                    document.getElementById('clearUploadBtn').style.display = 'none';
                     recordingStatus.textContent = 'Transcription complete!';
                 } else {
                     document.getElementById('uploadStatus').style.display = 'none';
@@ -2340,11 +2354,22 @@
                 });
 
                 if (result.success && result.talking_points && result.talking_points.length > 0) {
-                    content.innerHTML = result.talking_points.map(point => `
-                        <div class="talking-point-item type-${point.type}">
-                            ${point.type === 'question' ? '❓ ' : '📌 '}${point.text}
-                        </div>
-                    `).join('');
+                    const questions = result.talking_points.filter(p => p.type === 'question');
+                    const talkingPoints = result.talking_points.filter(p => p.type !== 'question');
+                    let html = '';
+                    if (questions.length > 0) {
+                        html += '<p style="font-weight: 600; color: var(--secondary); margin-bottom: 8px; font-size: 0.85rem;">THOUGHT QUESTIONS</p>';
+                        html += questions.map(point => `
+                            <div class="talking-point-item type-question">❓ ${point.text}</div>
+                        `).join('');
+                    }
+                    if (talkingPoints.length > 0) {
+                        html += '<p style="font-weight: 600; color: var(--primary); margin: 16px 0 8px; font-size: 0.85rem;">TALKING POINTS</p>';
+                        html += talkingPoints.map(point => `
+                            <div class="talking-point-item type-talking_point">📌 ${point.text}</div>
+                        `).join('');
+                    }
+                    content.innerHTML = html;
                 } else {
                     content.innerHTML = '<p style="color: var(--gray); padding: 20px;">Could not generate talking points. You can still record freely!</p>';
                 }
