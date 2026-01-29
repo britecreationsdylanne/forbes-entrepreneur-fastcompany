@@ -42,9 +42,6 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Session configuration
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', secrets.token_hex(32))
-app.config['SESSION_COOKIE_SECURE'] = True       # Cloud Run is HTTPS-only
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'    # Required for OAuth redirects
 
 # OAuth configuration
 oauth = OAuth(app)
