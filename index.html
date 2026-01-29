@@ -1975,7 +1975,7 @@
                 state.transcription = data.transcription;
                 state.article = data.article;
 
-                // Update UI
+                // Update step 1 UI
                 if (state.publication) {
                     document.querySelectorAll('.pub-card').forEach(c => {
                         c.classList.toggle('selected', c.dataset.pub === state.publication);
@@ -1984,8 +1984,43 @@
                 if (state.month) {
                     document.getElementById('monthSelect').value = state.month;
                 }
-
                 checkStep1Complete();
+
+                // Update step 2 UI
+                if (state.selectedTopic) {
+                    document.getElementById('step2Next').disabled = false;
+                }
+
+                // Update step 3 UI
+                if (state.selectedTopic) {
+                    document.getElementById('selectedTopicDisplay').textContent = state.selectedTopic.headline || '';
+                }
+                if (state.transcription) {
+                    document.getElementById('transcriptionBox').textContent = state.transcription;
+                    document.getElementById('transcriptionContainer').style.display = 'block';
+                    document.getElementById('step3BtnGroup').style.display = 'none';
+                    document.getElementById('step3Next').disabled = false;
+                }
+
+                // Update step 5 UI (draft review)
+                if (state.article) {
+                    setEditorContent(document.getElementById('articleEditor'), state.article);
+                    updateArticleWordCount();
+                }
+                if (state.selectedTopic) {
+                    document.getElementById('articleTitle').value = state.selectedTopic.headline || '';
+                }
+
+                // Update step 6 UI (final review)
+                if (state.article) {
+                    setEditorContent(document.getElementById('finalEditor'), state.article);
+                    document.getElementById('finalWordCount').textContent =
+                        document.getElementById('finalEditor').innerText.trim().split(/\s+/).filter(w => w).length + ' words';
+                }
+                if (state.selectedTopic) {
+                    document.getElementById('finalTitle').value = state.selectedTopic.headline || '';
+                }
+
                 showPanel(state.currentStep);
             }
         }
