@@ -505,6 +505,71 @@ def refine_topic():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/generate-variations', methods=['POST'])
+def generate_variations():
+    """Generate 10 topic variations based on a selected topic"""
+    data = request.json
+    publication = data.get('publication')
+    topic = data.get('topic', {})
+
+    try:
+        style_guide = load_style_guide(publication)
+        client = get_anthropic_client()
+
+        prompt = f"""
+        A CEO liked this topic idea for a {publication} article but wants to explore variations on the same theme.
+
+        ORIGINAL TOPIC:
+        Headline: {topic.get('headline', '')}
+        Angle: {topic.get('angle', '')}
+        Timeliness: {topic.get('timeliness', '')}
+        BriteCo Connection: {topic.get('briteco_connection', '')}
+
+        PUBLICATION STYLE:
+        - Publication: {style_guide.get('publication_full_name', publication)}
+        - Headline patterns: {json.dumps(style_guide.get('headline_patterns', []), indent=2)}
+        - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
+        - Author: Dustin Lemick, CEO of BriteCo (jewelry/watch insurance, insurtech)
+
+        Generate 10 NEW topic variations that explore the SAME general theme but with different angles, perspectives, or hooks.
+        Each should feel distinct while staying in the same subject area. Mix up the approaches: some more data-driven, some more narrative, some contrarian, some forward-looking.
+
+        For each topic, provide:
+        1. A headline in the publication's style
+        2. A one-sentence angle/hook
+        3. Why it's timely and relevant
+        4. How Dustin/BriteCo could connect to this topic
+
+        Return as JSON array with 10 objects, each having: headline, angle, timeliness, briteco_connection
+        """
+
+        response = client.messages.create(
+            model="claude-opus-4-5-20251101",
+            max_tokens=3000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = response.content[0].text
+
+        try:
+            start_idx = response_text.find('[')
+            end_idx = response_text.rfind(']') + 1
+            if start_idx != -1 and end_idx > start_idx:
+                topics = json.loads(response_text[start_idx:end_idx])
+            else:
+                topics = []
+        except json.JSONDecodeError:
+            topics = []
+
+        return jsonify({
+            'success': True,
+            'topics': topics,
+            'original_headline': topic.get('headline', '')
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/generate-talking-points', methods=['POST'])
 def generate_talking_points():
     """Generate AI talking points and thought questions for a selected topic"""
@@ -580,8 +645,9 @@ def transcribe_audio():
 
         audio_file = request.files['audio']
 
-        # Save to temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as tmp:
+        # Preserve original file extension so Whisper can detect format
+        original_ext = os.path.splitext(audio_file.filename or '')[1] or '.webm'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=original_ext) as tmp:
             audio_file.save(tmp.name)
             tmp_path = tmp.name
 

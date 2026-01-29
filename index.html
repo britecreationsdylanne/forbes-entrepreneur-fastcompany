@@ -1393,6 +1393,9 @@
                         <h3>Generated Topic Ideas</h3>
                         <p style="color: var(--gray); margin-bottom: 15px;">☑️ Check to use • 📌 Pin to save for later</p>
                         <div class="topic-cards" id="topicCards"></div>
+                        <div id="variationsBtn" style="display: none; margin-top: 15px; text-align: center;">
+                            <button class="btn btn-outline" id="generateVariationsBtn">🔄 Generate 10 Variations on This Theme</button>
+                        </div>
                     </div>
 
                     <div class="form-group" style="margin-top: 30px;">
@@ -1422,18 +1425,27 @@
         <div class="panel" id="step3">
             <h2>Record Your Thoughts</h2>
             <p style="color: var(--gray); margin-bottom: 10px;">Selected Topic: <strong id="selectedTopicDisplay"></strong></p>
+            <div id="topicDirectionBox" style="display: none; background: linear-gradient(135deg, rgba(0,129,129,0.08), rgba(0,129,129,0.03)); border: 1px solid rgba(0,129,129,0.2); border-radius: 10px; padding: 18px 22px; margin-bottom: 20px;">
+                <p style="margin: 0; color: var(--dark); font-size: 0.95rem; line-height: 1.6;" id="topicDirectionText"></p>
+            </div>
 
             <div class="step3-split-layout">
                 <!-- LEFT: Recording controls -->
                 <div class="recording-side">
                     <div class="recording-container">
-                        <p>Click to start recording your thoughts on this topic. Speak freely - the AI will shape it into an article.</p>
+                        <p>Speak freely about the topic - the AI will shape it into an article.</p>
 
                         <button class="record-btn" id="recordBtn">🎙️</button>
 
                         <div class="recording-time" id="recordingTime">00:00 / 10:00</div>
 
                         <p id="recordingStatus">Click to start recording</p>
+
+                        <div id="recordingControls" style="display: none; margin-top: 12px; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                            <button class="btn btn-outline" id="pauseRecordBtn" style="min-width: 120px;">⏸ Pause</button>
+                            <button class="btn btn-primary" id="finalizeRecordBtn" style="min-width: 160px;">✓ Finalize Recording</button>
+                        </div>
+
                         <button class="cancel-record-btn" id="cancelRecordBtn">✕ Cancel Recording</button>
 
                         <div class="upload-area">
@@ -1802,6 +1814,7 @@
             const topic = savedTopics[index];
             state.selectedTopic = topic;
             document.getElementById('step2Next').disabled = false;
+            document.getElementById('variationsBtn').style.display = 'block';
 
             // Close modal
             document.getElementById('savedTopicsModal').classList.remove('active');
@@ -2406,10 +2419,12 @@
                 // Unselect
                 state.selectedTopic = null;
                 document.getElementById('step2Next').disabled = true;
+                document.getElementById('variationsBtn').style.display = 'none';
             } else {
                 // Select this topic
                 state.selectedTopic = topic;
                 document.getElementById('step2Next').disabled = false;
+                document.getElementById('variationsBtn').style.display = 'block';
             }
             renderTopics();
         }
@@ -2422,6 +2437,33 @@
             await saveTopic(topic);
             renderTopics(); // Re-render to show pinned state
         }
+
+        // Generate variations on selected topic
+        document.getElementById('generateVariationsBtn').addEventListener('click', async () => {
+            if (!state.selectedTopic) return;
+
+            const btn = document.getElementById('generateVariationsBtn');
+            btn.disabled = true;
+            btn.textContent = '🔄 Generating variations...';
+
+            const result = await apiCall('/generate-variations', 'POST', {
+                publication: state.publication,
+                topic: state.selectedTopic
+            });
+
+            btn.disabled = false;
+            btn.textContent = '🔄 Generate 10 Variations on This Theme';
+
+            if (result.success && result.topics && result.topics.length > 0) {
+                state.selectedTopic = null;
+                document.getElementById('step2Next').disabled = true;
+                document.getElementById('variationsBtn').style.display = 'none';
+                state.topics = result.topics;
+                renderTopics();
+            } else {
+                alert('Error generating variations: ' + (result.error || 'Unknown error'));
+            }
+        });
 
         // Custom topic
         document.getElementById('customHeadline').addEventListener('input', checkCustomTopic);
@@ -2476,6 +2518,16 @@
         document.getElementById('step2Back').addEventListener('click', () => showPanel(1));
         document.getElementById('step2Next').addEventListener('click', () => {
             document.getElementById('selectedTopicDisplay').textContent = state.selectedTopic.headline;
+
+            // Build direction paragraph from topic data
+            const topic = state.selectedTopic;
+            const pubName = formatPubName(state.publication);
+            let direction = `<strong>Goal:</strong> Record your thoughts for a ${pubName} article on "${topic.headline}."`;
+            if (topic.angle) direction += ` <strong>Angle:</strong> ${topic.angle}`;
+            if (topic.briteco_connection) direction += ` <strong>BriteCo tie-in:</strong> ${topic.briteco_connection}`;
+            document.getElementById('topicDirectionText').innerHTML = direction;
+            document.getElementById('topicDirectionBox').style.display = 'block';
+
             showPanel(3);
             loadTalkingPoints();
         });
@@ -2487,57 +2539,105 @@
         let audioChunks = [];
         let recordingInterval = null;
         let recordingSeconds = 0;
+        let recordingStream = null;
 
         const recordBtn = document.getElementById('recordBtn');
         const recordingTime = document.getElementById('recordingTime');
         const recordingStatus = document.getElementById('recordingStatus');
+        const recordingControls = document.getElementById('recordingControls');
+        const pauseBtn = document.getElementById('pauseRecordBtn');
+        const finalizeBtn = document.getElementById('finalizeRecordBtn');
 
+        // Start recording (main button)
         recordBtn.addEventListener('click', async () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                // Stop recording
-                mediaRecorder.stop();
-                recordBtn.classList.remove('recording');
-                recordBtn.textContent = '🎙️';
-                recordingStatus.textContent = 'Processing...';
-                clearInterval(recordingInterval);
-                document.getElementById('cancelRecordBtn').classList.remove('visible');
-            } else {
-                // Start recording
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-
-                    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-
-                    mediaRecorder.onstop = async () => {
-                        state.audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        stream.getTracks().forEach(track => track.stop());
-                        await transcribeAudio();
-                    };
-
-                    mediaRecorder.start();
-                    recordBtn.classList.add('recording');
-                    recordBtn.textContent = '⏹️';
-                    recordingStatus.textContent = 'Recording... Click to stop';
-                    document.getElementById('cancelRecordBtn').classList.add('visible');
-
-                    recordingSeconds = 0;
-                    recordingInterval = setInterval(() => {
-                        recordingSeconds++;
-                        const mins = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
-                        const secs = (recordingSeconds % 60).toString().padStart(2, '0');
-                        recordingTime.textContent = `${mins}:${secs} / 10:00`;
-
-                        if (recordingSeconds >= 600) {
-                            mediaRecorder.stop();
-                        }
-                    }, 1000);
-
-                } catch (err) {
-                    alert('Could not access microphone: ' + err.message);
-                }
+            if (mediaRecorder && (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused')) {
+                return; // Use pause/finalize buttons instead
             }
+            // Start recording
+            try {
+                recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(recordingStream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+
+                mediaRecorder.onstop = async () => {
+                    state.audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    recordingStream.getTracks().forEach(track => track.stop());
+                    recordingStream = null;
+                    await transcribeAudio();
+                };
+
+                mediaRecorder.start(1000); // Collect data every second for pause support
+                recordBtn.classList.add('recording');
+                recordBtn.style.pointerEvents = 'none';
+                recordBtn.style.opacity = '0.6';
+                recordingStatus.textContent = 'Recording...';
+                recordingControls.style.display = 'flex';
+                document.getElementById('cancelRecordBtn').classList.add('visible');
+                pauseBtn.textContent = '⏸ Pause';
+                pauseBtn.classList.remove('btn-primary');
+                pauseBtn.classList.add('btn-outline');
+
+                recordingSeconds = 0;
+                recordingInterval = setInterval(() => {
+                    recordingSeconds++;
+                    const mins = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
+                    const secs = (recordingSeconds % 60).toString().padStart(2, '0');
+                    recordingTime.textContent = `${mins}:${secs} / 10:00`;
+
+                    if (recordingSeconds >= 600) {
+                        finalizeBtn.click();
+                    }
+                }, 1000);
+
+            } catch (err) {
+                alert('Could not access microphone: ' + err.message);
+            }
+        });
+
+        // Pause / Resume
+        pauseBtn.addEventListener('click', () => {
+            if (!mediaRecorder) return;
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.pause();
+                clearInterval(recordingInterval);
+                recordBtn.classList.remove('recording');
+                pauseBtn.textContent = '▶ Resume';
+                pauseBtn.classList.remove('btn-outline');
+                pauseBtn.classList.add('btn-primary');
+                recordingStatus.textContent = 'Paused';
+            } else if (mediaRecorder.state === 'paused') {
+                mediaRecorder.resume();
+                recordBtn.classList.add('recording');
+                pauseBtn.textContent = '⏸ Pause';
+                pauseBtn.classList.remove('btn-primary');
+                pauseBtn.classList.add('btn-outline');
+                recordingStatus.textContent = 'Recording...';
+                recordingInterval = setInterval(() => {
+                    recordingSeconds++;
+                    const mins = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
+                    const secs = (recordingSeconds % 60).toString().padStart(2, '0');
+                    recordingTime.textContent = `${mins}:${secs} / 10:00`;
+                    if (recordingSeconds >= 600) {
+                        finalizeBtn.click();
+                    }
+                }, 1000);
+            }
+        });
+
+        // Finalize recording
+        finalizeBtn.addEventListener('click', () => {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+            mediaRecorder.stop();
+            recordBtn.classList.remove('recording');
+            recordBtn.style.pointerEvents = '';
+            recordBtn.style.opacity = '';
+            recordBtn.textContent = '🎙️';
+            recordingStatus.textContent = 'Processing...';
+            clearInterval(recordingInterval);
+            recordingControls.style.display = 'none';
+            document.getElementById('cancelRecordBtn').classList.remove('visible');
         });
 
         // File upload
@@ -2637,10 +2737,13 @@
 
         // Cancel recording - discard and reset
         document.getElementById('cancelRecordBtn').addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
+            if (mediaRecorder && (mediaRecorder.state === 'recording' || mediaRecorder.state === 'paused')) {
                 mediaRecorder.ondataavailable = () => {};
                 mediaRecorder.onstop = () => {
-                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    if (recordingStream) {
+                        recordingStream.getTracks().forEach(track => track.stop());
+                        recordingStream = null;
+                    }
                 };
                 mediaRecorder.stop();
             }
@@ -2650,9 +2753,12 @@
             clearInterval(recordingInterval);
 
             recordBtn.classList.remove('recording');
+            recordBtn.style.pointerEvents = '';
+            recordBtn.style.opacity = '';
             recordBtn.textContent = '🎙️';
             recordingTime.textContent = '00:00 / 10:00';
             recordingStatus.textContent = 'Click to start recording';
+            recordingControls.style.display = 'none';
             document.getElementById('cancelRecordBtn').classList.remove('visible');
         });
 
@@ -3046,6 +3152,8 @@
             document.getElementById('audioUpload').value = '';
             document.getElementById('cancelRecordBtn').classList.remove('visible');
             document.getElementById('talkingPointsContent').innerHTML = '';
+            document.getElementById('topicDirectionBox').style.display = 'none';
+            document.getElementById('recordingControls').style.display = 'none';
 
             // Reset step 5/6 editors
             document.getElementById('articleEditor').innerHTML = '';
