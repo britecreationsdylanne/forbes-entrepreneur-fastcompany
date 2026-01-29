@@ -859,6 +859,95 @@ def delete_draft(draft_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/projects/complete', methods=['POST'])
+def complete_project():
+    """Move a draft to completed status in GCS"""
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+
+    try:
+        data = request.json
+        draft_id = data.get('draft_id')
+        if not draft_id:
+            return jsonify({'success': False, 'error': 'draft_id required'}), 400
+
+        current_user = get_current_user()
+        user_email = current_user.get('email', 'Unknown') if current_user else 'Unknown'
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        source_blob = bucket.blob(f"drafts/{draft_id}.json")
+
+        if not source_blob.exists():
+            return jsonify({'success': False, 'error': 'Draft not found'}), 404
+
+        # Read existing draft data
+        draft = json.loads(source_blob.download_as_text())
+
+        # Add completion metadata
+        draft['completed_at'] = datetime.now().isoformat()
+        draft['completed_by'] = user_email
+
+        # Write to completed/ prefix
+        dest_blob = bucket.blob(f"completed/{draft_id}.json")
+        dest_blob.upload_from_string(
+            json.dumps(draft, indent=2),
+            content_type='application/json'
+        )
+
+        # Delete from drafts/
+        source_blob.delete()
+
+        return jsonify({
+            'success': True,
+            'message': 'Project completed successfully',
+            'draft_id': draft_id
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/completed/list', methods=['GET'])
+def list_completed():
+    """List completed articles from GCS, optionally filtered by publication"""
+    if not gcs_client:
+        return jsonify({'completed': []})
+
+    try:
+        publication_filter = request.args.get('publication')
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blobs = list(bucket.list_blobs(prefix='completed/'))
+        completed = []
+
+        for blob in blobs:
+            if blob.name.endswith('.json'):
+                try:
+                    article = json.loads(blob.download_as_text())
+
+                    if publication_filter and article.get('publication') != publication_filter:
+                        continue
+
+                    completed.append({
+                        'id': article.get('id'),
+                        'publication': article.get('publication'),
+                        'month': article.get('month'),
+                        'year': article.get('year'),
+                        'title': article.get('data', {}).get('topic', {}).get('headline', 'Untitled'),
+                        'created_at': article.get('created_at'),
+                        'created_by': article.get('created_by', 'Unknown'),
+                        'completed_at': article.get('completed_at'),
+                        'completed_by': article.get('completed_by', 'Unknown')
+                    })
+                except Exception:
+                    continue
+
+        completed.sort(key=lambda x: x.get('completed_at', ''), reverse=True)
+
+        return jsonify({'completed': completed})
+
+    except Exception as e:
+        return jsonify({'completed': [], 'error': str(e)})
+
 # ===================
 # Routes - Saved Topics (GCS) - Organized by Publication
 # ===================

@@ -1129,6 +1129,138 @@
             color: #dc2626;
         }
 
+        /* Completed Articles Section */
+        .completed-section {
+            padding: 80px 20px;
+            margin-top: 0;
+            background: var(--dark);
+        }
+
+        .pub-filter-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .pub-filter-tab {
+            padding: 8px 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .pub-filter-tab:hover {
+            border-color: rgba(255,255,255,0.6);
+            color: white;
+        }
+
+        .pub-filter-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .completed-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .completed-card h5 {
+            margin: 0 0 8px 0;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+
+        .completed-card .completed-pub {
+            color: var(--primary);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .completed-card .completed-meta {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 12px;
+        }
+
+        .completed-card .completed-badge {
+            display: inline-block;
+            background: var(--success);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .no-completed-message {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+            padding: 40px;
+            grid-column: 1 / -1;
+        }
+
+        /* Congratulations Modal */
+        .congrats-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .congrats-modal.active {
+            display: flex;
+        }
+
+        .congrats-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 50px 40px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .congrats-modal-content .congrats-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .congrats-modal-content h2 {
+            color: var(--dark);
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        .congrats-modal-content p {
+            color: var(--gray);
+            margin-bottom: 25px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .publication-cards {
@@ -1441,6 +1573,7 @@
 
             <div class="btn-group">
                 <button class="btn btn-outline" id="step5Back">← Back to Recording</button>
+                <button class="btn btn-secondary" id="step5Save">Save Draft</button>
                 <button class="btn btn-primary" id="step5Next">Proceed to Final →</button>
             </div>
         </div>
@@ -1498,7 +1631,8 @@
 
             <div class="btn-group">
                 <button class="btn btn-outline" id="step6Back">← Back to Draft</button>
-                <button class="btn btn-primary" id="startNewBtn">Start New Article</button>
+                <button class="btn btn-secondary" id="step6Save">Save Draft</button>
+                <button class="btn btn-primary" id="completeProjectBtn">Complete Project</button>
             </div>
         </div>
         </div><!-- end main-content -->
@@ -1510,6 +1644,31 @@
             <h2 style="font-size: 36px; color: white; text-align: center; margin-bottom: 10px;">Saved Drafts</h2>
             <p style="color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 40px;">Resume an in-progress article</p>
             <div id="draftsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
+        </div>
+    </div>
+
+    <!-- Completed Articles Section -->
+    <div id="completedSection" class="completed-section">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <h2 style="font-size: 36px; color: white; text-align: center; margin-bottom: 10px;">Completed Articles</h2>
+            <p style="color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 30px;">Finalized and submitted articles</p>
+            <div class="pub-filter-tabs">
+                <button class="pub-filter-tab active" data-filter="all">All</button>
+                <button class="pub-filter-tab" data-filter="forbes">Forbes</button>
+                <button class="pub-filter-tab" data-filter="entrepreneur">Entrepreneur</button>
+                <button class="pub-filter-tab" data-filter="fastcompany">Fast Company</button>
+            </div>
+            <div id="completedList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
+        </div>
+    </div>
+
+    <!-- Congratulations Modal -->
+    <div class="congrats-modal" id="congratsModal">
+        <div class="congrats-modal-content">
+            <div class="congrats-icon">&#127881;</div>
+            <h2>Congrats, project completed!</h2>
+            <p>Your article has been finalized and moved to completed articles.</p>
+            <button class="btn btn-primary" id="congratsDismissBtn">Start New Article</button>
         </div>
     </div>
 
@@ -1710,12 +1869,12 @@
                 if (sNum === stepNum) s.classList.add('active');
             });
 
-            // Show/hide save bar (hide on steps 1-3, show after recording)
+            // Show/hide save bar (only on step 4; steps 5 & 6 have inline Save buttons)
             const saveBar = document.getElementById('saveBar');
-            if (stepNum <= 3) {
-                saveBar.classList.remove('visible');
-            } else {
+            if (stepNum === 4) {
                 saveBar.classList.add('visible');
+            } else {
+                saveBar.classList.remove('visible');
             }
 
 
@@ -1943,6 +2102,58 @@
             const result = await apiCall(`/drafts/${draftId}`, 'DELETE');
             if (result.success) {
                 loadDrafts(); // Refresh list
+            }
+        }
+
+        // ===================
+        // Completed Articles
+        // ===================
+        let completedFilter = 'all';
+
+        async function loadCompletedArticles() {
+            const url = completedFilter === 'all'
+                ? '/completed/list'
+                : `/completed/list?publication=${completedFilter}`;
+            const result = await apiCall(url);
+            const completedList = document.getElementById('completedList');
+
+            if (result.completed && result.completed.length > 0) {
+                completedList.innerHTML = result.completed.map(article => `
+                    <div class="completed-card">
+                        <h5>${article.title || 'Untitled Article'}</h5>
+                        <div class="completed-pub">${formatPubName(article.publication)} - ${article.month} ${article.year || ''}</div>
+                        <div class="completed-meta">
+                            ${formatDate(article.created_at)}${article.created_by ? ' &bull; ' + article.created_by : ''}
+                        </div>
+                        <span class="completed-badge">Completed ${formatDate(article.completed_at)}</span>
+                    </div>
+                `).join('');
+            } else {
+                completedList.innerHTML = '<div class="no-completed-message">No completed articles yet.</div>';
+            }
+        }
+
+        async function completeProject() {
+            if (!state.draftId) {
+                // Save first to create a draft ID
+                await saveDraft();
+                if (!state.draftId) {
+                    alert('Please save the draft first before completing.');
+                    return;
+                }
+            }
+
+            // Save latest state before completing
+            await saveDraft();
+
+            const result = await apiCall('/projects/complete', 'POST', {
+                draft_id: state.draftId
+            });
+
+            if (result.success) {
+                document.getElementById('congratsModal').classList.add('active');
+            } else {
+                alert('Error completing project: ' + (result.error || 'Unknown error'));
             }
         }
 
@@ -2785,7 +2996,18 @@
         });
 
         document.getElementById('step6Back').addEventListener('click', () => showPanel(5));
-        document.getElementById('startNewBtn').addEventListener('click', () => {
+
+        // Step 5 & 6 inline Save Draft buttons
+        document.getElementById('step5Save').addEventListener('click', saveDraft);
+        document.getElementById('step6Save').addEventListener('click', saveDraft);
+
+        // Complete Project button
+        document.getElementById('completeProjectBtn').addEventListener('click', completeProject);
+
+        // Congrats modal dismiss - full state reset
+        document.getElementById('congratsDismissBtn').addEventListener('click', () => {
+            document.getElementById('congratsModal').classList.remove('active');
+
             // Reset state
             state.draftId = null;
             state.publication = null;
@@ -2834,7 +3056,18 @@
             document.getElementById('finalExportResult').style.display = 'none';
 
             showPanel(1);
-            loadDrafts(); // Refresh drafts list
+            loadDrafts();
+            loadCompletedArticles();
+        });
+
+        // Publication filter tabs for completed articles
+        document.querySelectorAll('.pub-filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.pub-filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                completedFilter = tab.dataset.filter;
+                loadCompletedArticles();
+            });
         });
 
         document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
@@ -2862,6 +3095,7 @@
         // Initialize
         // ===================
         loadDrafts();
+        loadCompletedArticles();
 
         // Initialize recipient lists
         renderRecipients('draft');
