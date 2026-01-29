@@ -1401,8 +1401,21 @@
                 <div class="word-count" id="wordCount">0 words</div>
             </div>
 
-            <div class="btn-group" style="margin-bottom: 30px;">
-                <button class="btn btn-outline" id="rewriteBtn">🔄 Rewrite with AI</button>
+            <div style="margin-bottom: 30px;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="rewriteSelect" style="padding: 10px 14px; border: 2px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: white; color: var(--dark); min-width: 250px;">
+                        <option value="">Select rewrite option...</option>
+                        <option value="Make it more concise and tighten the prose">Make more concise</option>
+                        <option value="Add more BriteCo examples and personal anecdotes from Dustin">Add more BriteCo examples</option>
+                        <option value="Make the tone more conversational and less formal">More conversational tone</option>
+                        <option value="Strengthen the opening hook to grab readers immediately">Strengthen the opening</option>
+                        <option value="Add more data points, statistics, or concrete evidence">Add more data/statistics</option>
+                        <option value="Improve the conclusion to end with a stronger call to action">Stronger conclusion</option>
+                        <option value="Make subheadings more compelling and descriptive">Improve subheadings</option>
+                        <option value="custom">Custom instructions...</option>
+                    </select>
+                    <button class="btn btn-outline" id="rewriteBtn" disabled>🔄 Rewrite with AI</button>
+                </div>
             </div>
 
             <div class="export-options">
@@ -1410,6 +1423,7 @@
                     <h4>📄 Export to Google Docs</h4>
                     <p>Save to the Drafts folder for team editing</p>
                     <button class="btn btn-primary" id="exportDraftBtn">Export Draft</button>
+                    <div id="draftExportResult" style="display: none; margin-top: 12px;"></div>
                 </div>
                 <div class="export-card" style="text-align: left;">
                     <h4 style="text-align: center;">📧 Send Draft Notification</h4>
@@ -1424,8 +1438,6 @@
                     <div style="text-align: center;"><button class="btn btn-primary" id="sendDraftEmailBtn" style="margin-top: 15px;">Send</button></div>
                 </div>
             </div>
-
-            <div id="draftExportResult" style="display: none; margin-top: 20px;"></div>
 
             <div class="btn-group">
                 <button class="btn btn-outline" id="step5Back">← Back to Recording</button>
@@ -1468,6 +1480,7 @@
                     <h4>📄 Export to Finals Folder</h4>
                     <p>Save final version to Google Docs</p>
                     <button class="btn btn-primary" id="exportFinalBtn">Export Final</button>
+                    <div id="finalExportResult" style="display: none; margin-top: 12px;"></div>
                 </div>
                 <div class="export-card" style="text-align: left;">
                     <h4 style="text-align: center;">📧 Send Final Notification</h4>
@@ -1482,8 +1495,6 @@
                     <div style="text-align: center;"><button class="btn btn-primary" id="sendFinalEmailBtn" style="margin-top: 15px;">Send</button></div>
                 </div>
             </div>
-
-            <div id="finalExportResult" style="display: none; margin-top: 20px;"></div>
 
             <div class="btn-group">
                 <button class="btn btn-outline" id="step6Back">← Back to Draft</button>
@@ -2532,12 +2543,24 @@
             state.selectedTopic.headline = e.target.value;
         });
 
+        document.getElementById('rewriteSelect').addEventListener('change', () => {
+            const val = document.getElementById('rewriteSelect').value;
+            document.getElementById('rewriteBtn').disabled = !val;
+        });
+
         document.getElementById('rewriteBtn').addEventListener('click', async () => {
-            const instructions = prompt('Enter rewrite instructions (e.g., "Make it more concise", "Add more BriteCo examples"):');
+            const select = document.getElementById('rewriteSelect');
+            let instructions = select.value;
             if (!instructions) return;
 
-            document.getElementById('rewriteBtn').disabled = true;
-            document.getElementById('rewriteBtn').textContent = '⏳ Rewriting...';
+            if (instructions === 'custom') {
+                instructions = prompt('Enter custom rewrite instructions:');
+                if (!instructions) return;
+            }
+
+            const btn = document.getElementById('rewriteBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Rewriting...';
 
             const result = await apiCall('/rewrite-article', 'POST', {
                 publication: state.publication,
@@ -2545,8 +2568,10 @@
                 instructions
             });
 
-            document.getElementById('rewriteBtn').disabled = false;
-            document.getElementById('rewriteBtn').textContent = '🔄 Rewrite with AI';
+            btn.disabled = false;
+            btn.textContent = '🔄 Rewrite with AI';
+            select.value = '';
+            btn.disabled = true;
 
             if (result.success) {
                 state.article = result.article;
