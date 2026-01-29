@@ -1303,7 +1303,7 @@
                         <input type="email" id="draftCustomEmail" placeholder="Add custom email..." style="width: calc(100% - 80px); display: inline-block;">
                         <button class="btn btn-outline" id="draftAddEmail" style="padding: 10px 15px; vertical-align: top;">Add</button>
                     </div>
-                    <button class="btn btn-primary" id="sendDraftEmailBtn" style="width: 100%; margin-top: 15px;">Send</button>
+                    <div style="text-align: center;"><button class="btn btn-primary" id="sendDraftEmailBtn" style="margin-top: 15px;">Send</button></div>
                 </div>
             </div>
 
@@ -1361,7 +1361,7 @@
                         <input type="email" id="finalCustomEmail" placeholder="Add custom email..." style="width: calc(100% - 80px); display: inline-block;">
                         <button class="btn btn-outline" id="finalAddEmail" style="padding: 10px 15px; vertical-align: top;">Add</button>
                     </div>
-                    <button class="btn btn-primary" id="sendFinalEmailBtn" style="width: 100%; margin-top: 15px;">Send</button>
+                    <div style="text-align: center;"><button class="btn btn-primary" id="sendFinalEmailBtn" style="margin-top: 15px;">Send</button></div>
                 </div>
             </div>
 
@@ -1567,6 +1567,7 @@
         // Utility Functions
         // ===================
         function showPanel(stepNum) {
+            window.scrollTo(0, 0);
             elements.panels.forEach(p => p.classList.remove('active'));
             document.getElementById(`step${stepNum}`).classList.add('active');
 
@@ -1642,10 +1643,10 @@
 
         // Convert markdown-style ## headings to HTML when setting content
         function markdownToHtml(text) {
-            // Convert ## Heading to <h2>
-            text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-            // Convert ### Heading to <h3>
+            // Convert headings (order matters: ### before ## before #)
             text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            text = text.replace(/^# (.+)$/gm, '<h2>$1</h2>');
             // Convert **bold** to <strong>
             text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             // Convert *italic* to <em>
@@ -1907,6 +1908,18 @@
         document.getElementById('step1Next').addEventListener('click', async () => {
             document.getElementById('step2Info').textContent =
                 `Generating topics for ${state.publication.charAt(0).toUpperCase() + state.publication.slice(1)} - ${state.month} ${state.year}`;
+
+            // Clear previous topics/selections (each publication gets fresh research)
+            state.topics = [];
+            state.selectedTopic = null;
+            state.research = null;
+            document.getElementById('topicCards').innerHTML = '';
+            document.getElementById('topicsContainer').style.display = 'none';
+            document.getElementById('regenerateBtn').disabled = true;
+            document.getElementById('step2Next').disabled = true;
+            document.getElementById('customHeadline').value = '';
+            document.getElementById('customAngle').value = '';
+
             loadArchive();
             await loadSavedTopics(); // Load saved topics for this publication
             showPanel(2);
@@ -1994,10 +2007,12 @@
                            onclick="event.stopPropagation(); toggleTopicSelection(${i})"
                            title="Use this topic">
                     <button class="pin-topic-btn ${isSaved ? 'pinned' : ''}"
-                            onclick="event.stopPropagation(); togglePinTopic(${i})"
-                            title="${isSaved ? 'Remove from saved' : 'Save for later'}">
+                            onclick="event.stopPropagation(); ${isSaved ? '' : `togglePinTopic(${i})`}"
+                            title="${isSaved ? 'Saved for later' : 'Save for later'}"
+                            style="${isSaved ? 'cursor: default;' : ''}">
                         📌
                     </button>
+                    ${isSaved ? '<div style="position: absolute; top: 34px; right: 2px; font-size: 9px; color: #d97706; font-weight: 600; white-space: nowrap;">saved for later</div>' : ''}
                     <h4 style="margin-left: 30px;">${topic.headline}</h4>
                     <p>${topic.angle}</p>
                     <p class="timeliness">⏰ ${topic.timeliness}</p>
@@ -2024,16 +2039,10 @@
         async function togglePinTopic(index) {
             const topic = state.topics[index];
             if (isTopicSaved(topic.headline)) {
-                // Remove from saved
-                const savedIndex = savedTopics.findIndex(t => t.headline === topic.headline);
-                if (savedIndex > -1) {
-                    await removeSavedTopic(savedIndex);
-                }
-            } else {
-                // Save topic
-                await saveTopic(topic);
-                renderTopics(); // Re-render to show pinned state
+                return; // Already saved - remove from Saved Topics modal instead
             }
+            await saveTopic(topic);
+            renderTopics(); // Re-render to show pinned state
         }
 
         // Custom topic
@@ -2155,7 +2164,7 @@
             const file = e.target.files[0];
             if (file) {
                 state.audioBlob = file;
-                recordingStatus.textContent = 'Processing uploaded file...';
+                recordingStatus.textContent = 'Starting transcription...';
                 await transcribeAudio();
             }
         });
@@ -2506,9 +2515,39 @@
             state.article = null;
             state.docUrl = null;
 
-            // Reset UI
+            // Reset step 1
             document.querySelectorAll('.pub-card').forEach(c => c.classList.remove('selected'));
             document.getElementById('monthSelect').value = '';
+            document.getElementById('step1Next').disabled = true;
+
+            // Reset step 2
+            document.getElementById('topicCards').innerHTML = '';
+            document.getElementById('topicsContainer').style.display = 'none';
+            document.getElementById('regenerateBtn').disabled = true;
+            document.getElementById('step2Next').disabled = true;
+            document.getElementById('customHeadline').value = '';
+            document.getElementById('customAngle').value = '';
+            document.getElementById('refineCustomBtn').disabled = true;
+
+            // Reset step 3
+            document.getElementById('transcriptionContainer').style.display = 'none';
+            document.getElementById('transcriptionBox').textContent = '';
+            document.getElementById('step3BtnGroup').style.display = '';
+            document.getElementById('step3Next').disabled = true;
+            document.getElementById('step3NextNoTrans').disabled = true;
+            document.getElementById('recordingStatus').textContent = 'Click to start recording';
+            document.getElementById('recordingTime').textContent = '00:00 / 10:00';
+            document.getElementById('transcriptionExportResult').innerHTML = '';
+            document.getElementById('audioUpload').value = '';
+
+            // Reset step 5/6 editors
+            document.getElementById('articleEditor').innerHTML = '';
+            document.getElementById('articleTitle').value = '';
+            document.getElementById('finalEditor').innerHTML = '';
+            document.getElementById('finalTitle').value = '';
+            document.getElementById('draftExportResult').style.display = 'none';
+            document.getElementById('finalExportResult').style.display = 'none';
+
             showPanel(1);
             loadDrafts(); // Refresh drafts list
         });
