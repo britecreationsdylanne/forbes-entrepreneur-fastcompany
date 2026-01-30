@@ -1291,6 +1291,36 @@
             margin-bottom: 25px;
         }
 
+        /* Inspiration Panel */
+        #inspirationContent h4 {
+            color: var(--primary);
+            font-size: 1rem;
+            margin: 20px 0 10px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #inspirationContent h4:first-child {
+            margin-top: 0;
+        }
+
+        #inspirationContent ul {
+            padding-left: 20px;
+            margin: 8px 0;
+        }
+
+        #inspirationContent li {
+            margin-bottom: 6px;
+            color: var(--dark);
+            font-size: 0.93rem;
+        }
+
+        #inspirationContent p {
+            color: var(--dark);
+            font-size: 0.93rem;
+            margin: 8px 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .publication-cards {
@@ -1456,8 +1486,20 @@
         <div class="panel" id="step3">
             <h2>Record Your Thoughts</h2>
             <p style="color: var(--gray); margin-bottom: 10px;">Selected Topic: <strong id="selectedTopicDisplay"></strong></p>
-            <div id="topicDirectionBox" style="display: none; background: linear-gradient(135deg, rgba(0,129,129,0.08), rgba(0,129,129,0.03)); border: 1px solid rgba(0,129,129,0.2); border-radius: 10px; padding: 18px 22px; margin-bottom: 20px;">
+            <div id="topicDirectionBox" style="display: none; background: linear-gradient(135deg, rgba(0,129,129,0.08), rgba(0,129,129,0.03)); border: 1px solid rgba(0,129,129,0.2); border-radius: 10px; padding: 18px 22px; margin-bottom: 12px;">
                 <p style="margin: 0; color: var(--dark); font-size: 0.95rem; line-height: 1.6;" id="topicDirectionText"></p>
+            </div>
+
+            <div id="inspirationBtnWrap" style="display: none; margin-bottom: 20px;">
+                <button class="btn btn-outline" id="inspirationBtn" style="font-size: 0.9rem;">💡 Need More Inspiration?</button>
+            </div>
+
+            <div id="inspirationPanel" style="display: none; background: white; border: 1px solid var(--border); border-radius: 10px; padding: 24px 28px; margin-bottom: 20px; line-height: 1.7;">
+                <div id="inspirationLoading" style="text-align: center; padding: 20px;">
+                    <div class="spinner"></div>
+                    <p style="color: var(--gray); margin-top: 10px;">Generating detailed article brief...</p>
+                </div>
+                <div id="inspirationContent" style="display: none;"></div>
             </div>
 
             <div class="step3-split-layout">
@@ -2565,12 +2607,68 @@
             direction += `<br><em style="color: var(--gray);">Tip: Share specific examples, data points, or personal stories. The more concrete detail you give, the stronger the article will be.</em>`;
             document.getElementById('topicDirectionText').innerHTML = direction;
             document.getElementById('topicDirectionBox').style.display = 'block';
+            document.getElementById('inspirationBtnWrap').style.display = 'block';
+            // Reset inspiration panel for new topic
+            document.getElementById('inspirationPanel').style.display = 'none';
+            document.getElementById('inspirationContent').style.display = 'none';
+            document.getElementById('inspirationContent').innerHTML = '';
+            document.getElementById('inspirationBtn').textContent = '💡 Need More Inspiration?';
 
             showPanel(3);
             loadTalkingPoints();
         });
 
         // ===================
+        // Step 3: Inspiration
+        // ===================
+        let inspirationLoaded = false;
+
+        document.getElementById('inspirationBtn').addEventListener('click', async () => {
+            const panel = document.getElementById('inspirationPanel');
+            const content = document.getElementById('inspirationContent');
+            const btn = document.getElementById('inspirationBtn');
+
+            if (inspirationLoaded && content.innerHTML) {
+                // Toggle visibility
+                if (panel.style.display === 'none') {
+                    panel.style.display = 'block';
+                    document.getElementById('inspirationLoading').style.display = 'none';
+                    content.style.display = 'block';
+                    btn.textContent = '💡 Hide Inspiration';
+                } else {
+                    panel.style.display = 'none';
+                    btn.textContent = '💡 Show Inspiration';
+                }
+                return;
+            }
+
+            // First click — fetch inspiration
+            panel.style.display = 'block';
+            document.getElementById('inspirationLoading').style.display = 'block';
+            content.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = '💡 Generating...';
+
+            const result = await apiCall('/generate-inspiration', 'POST', {
+                publication: state.publication,
+                topic: state.selectedTopic
+            });
+
+            document.getElementById('inspirationLoading').style.display = 'none';
+            btn.disabled = false;
+
+            if (result.success && result.inspiration) {
+                content.innerHTML = result.inspiration;
+                content.style.display = 'block';
+                inspirationLoaded = true;
+                btn.textContent = '💡 Hide Inspiration';
+            } else {
+                panel.style.display = 'none';
+                btn.textContent = '💡 Need More Inspiration?';
+                alert('Error generating inspiration: ' + (result.error || 'Unknown error'));
+            }
+        });
+
         // Step 3: Recording
         // ===================
         let mediaRecorder = null;
@@ -3191,6 +3289,10 @@
             document.getElementById('cancelRecordBtn').classList.remove('visible');
             document.getElementById('talkingPointsContent').innerHTML = '';
             document.getElementById('topicDirectionBox').style.display = 'none';
+            document.getElementById('inspirationBtnWrap').style.display = 'none';
+            document.getElementById('inspirationPanel').style.display = 'none';
+            document.getElementById('inspirationContent').innerHTML = '';
+            inspirationLoaded = false;
             document.getElementById('recordingControls').style.display = 'none';
 
             // Reset step 5/6 editors

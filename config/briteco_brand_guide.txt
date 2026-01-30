@@ -1,0 +1,76 @@
+BRITECO EDITORIAL STYLE GUIDE — APPLY TO ALL WRITING
+
+NUMBERS
+- Use the percent symbol (%) rather than typing out 'percent'
+  Correct: Our survey found that 71% of jewelers believed earrings to be the most popular item.
+  Incorrect: Our survey found that seventy-one percent of jewelers believed earrings to be the most popular item.
+- For ages, use numbers rather than spelling out
+  Correct: She is 58-years-old
+  Incorrect: She is fifty-eight-years-old
+- For zero, spell out rather than using a number
+  Correct: We offer zero deductibles
+  Incorrect: We offer $0 deductibles
+- For phone number, only provide BriteCo's main number: (312) 809-9100
+
+ABBREVIATIONS
+- For country abbreviations, do not use periods
+  Correct: US, UK
+  Incorrect: U.S., U.K.
+- For Washington, DC, do not use periods
+  Correct: Washington, DC
+  Incorrect: Washington, D.C.
+
+PUNCTUATION
+- Use a serial comma when writing out a list
+  Correct: Our jewelry insurance covers theft, loss, and damages.
+  Incorrect: Our jewelry insurance covers theft, loss and damages.
+- Use an em dash when offsetting copy in a sentence (not a hyphen) with spaces around it
+  Correct: Engagement rings — while pricey — are a worthwhile investment.
+  Incorrect: Engagement rings—while pricey—are a worthwhile investment.
+  Incorrect: Engagement rings - while pricey - are a worthwhile investment.
+- Put names of movies, books, and periodicals in italics, not quotes
+  Correct: Our CEO recently published a new expert article on Forbes.
+  Incorrect: Our CEO recently published a new expert article on "Forbes."
+- When you have a quote within a sentence, put punctuation inside the quotation marks
+  Correct: Our tagline is, "Modern protection for modern milestones."
+  Incorrect: Our tagline is, "Modern protection for modern milestones".
+- Use a hyphen between two words modifying a noun
+  Example: We are proud of our 5-star ratings.
+  Example: Our insurance offers budget-friendly policies.
+- Always hyphenate lab-grown
+
+TITLE CASE VS. SENTENCE CASE
+- Headlines (H1s, H2s, H3s): use title case — every major word capitalized except prepositions/conjunctions
+  Example: Types of Flower Arrangements You'll See at Most Weddings
+- All other copy (body, bullet lists): use sentence case
+
+BRAND NAMES
+- Omega Watches (not OMEGA Watches)
+
+BRITECO BRAND RULES
+- DO call BriteCo an 'insurtech company' or an 'insurance provider'
+- DON'T call BriteCo an 'insurance company'
+- DO refer to BriteCo as a specialty jewelry insurance provider when comparing to general insurers
+- DON'T refer to BriteCo as 'specialized jewelry insurance'
+- DON'T slander competitors or link to them
+- DO say we are 'backed by an AM Best A+ rated Insurance Carrier'
+- DON'T say 'we have AM Best policies' or 'we are AM Best'
+- DO refer to the website as brite.co or https://brite.co
+- DON'T refer to the website as www.brite.co
+- DO spell it stand-alone (not standalone)
+
+TONE — WEDDING INSURANCE
+- Be inclusive, use gender-less verbiage (they, them, theirs)
+- Use 'wedding party' rather than 'bridal party'
+- Say 'groom crew' over 'groomsmen'
+- Rather than bride and groom, say partner, soon-to-be spouse, etc.
+
+TONE — JEWELRY
+- When mentioning health claims or benefits, never promise results; use softer language
+  Correct: Copper may be helpful with boosting immune function.
+  Incorrect: Wearing copper will increase immune function.
+
+GLOSSARY
+- Homeowners policy (not Homeowner's or Homeowners')
+- Renters insurance (not Renter's or Renters')
+- Stand Alone (not standalone or stand-alone)

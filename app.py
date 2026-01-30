@@ -111,6 +111,14 @@ def load_style_guide(publication: str) -> dict:
             return json.load(f)
     return {}
 
+def load_brand_guide() -> str:
+    """Load BriteCo brand editorial guide (applies to all publications)"""
+    filepath = STYLE_GUIDES_DIR.parent / 'briteco_brand_guide.txt'
+    if filepath.exists():
+        with open(filepath, 'r') as f:
+            return f.read()
+    return ''
+
 def load_topic_archive() -> dict:
     """Load the topic archive"""
     filepath = CONFIG_DIR / 'topic_archive.json'
@@ -631,6 +639,63 @@ def generate_talking_points():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/generate-inspiration', methods=['POST'])
+def generate_inspiration():
+    """Generate detailed article brief / inspiration for the CEO before recording"""
+    data = request.json
+    publication = data.get('publication')
+    topic = data.get('topic', {})
+
+    try:
+        style_guide = load_style_guide(publication)
+        brand_guide = load_brand_guide()
+        client = get_anthropic_client()
+
+        prompt = f"""
+        You are helping a CEO prepare to record his thoughts for a {style_guide.get('publication_full_name', publication)} thought leadership article.
+
+        TOPIC:
+        Headline: {topic.get('headline', '')}
+        Angle: {topic.get('angle', '')}
+        Why it's timely: {topic.get('timeliness', '')}
+        BriteCo Connection: {topic.get('briteco_connection', '')}
+
+        AUTHOR: Dustin Lemick, CEO of BriteCo — an insurtech company providing specialty jewelry and watch insurance.
+        PUBLICATION TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
+        TARGET WORD COUNT: {style_guide.get('specifications', {}).get('word_count', {}).get('typical', 850)} words
+
+        Generate a detailed article brief to inspire and guide the CEO before recording. Format as HTML with the following sections:
+
+        1. <h4>Article Vision</h4> — A 2-3 sentence summary of what this article should accomplish and the reader takeaway.
+
+        2. <h4>Suggested Structure</h4> — An outline with:
+           - Opening hook idea (1-2 specific options)
+           - 3-4 section ideas with brief descriptions of what each should cover
+           - Closing approach
+
+        3. <h4>Key Points to Cover</h4> — A bulleted list of 5-6 specific points, data angles, or arguments the article should make.
+
+        4. <h4>BriteCo Stories & Examples</h4> — 3-4 specific prompts for personal stories, BriteCo experiences, or industry examples Dustin could share. Be specific — reference things a jewelry insurtech CEO would actually experience.
+
+        5. <h4>Data & References to Consider</h4> — 3-4 types of statistics, studies, or expert perspectives that would strengthen the article. Suggest what to look up or mention.
+
+        Return ONLY the HTML content (no markdown, no code blocks). Use <h4> for section headers, <ul><li> for lists, <p> for paragraphs, and <strong> for emphasis.
+        """
+
+        response = client.messages.create(
+            model="claude-opus-4-5-20251101",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        return jsonify({
+            'success': True,
+            'inspiration': response.content[0].text
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ===================
 # Routes - Audio Recording & Transcription
 # ===================
@@ -689,8 +754,9 @@ def generate_article():
     transcription = data.get('transcription', '')
 
     try:
-        # Load style guide
+        # Load style guide and brand guide
         style_guide = load_style_guide(publication)
+        brand_guide = load_brand_guide()
 
         # Use Claude for article generation
         client = get_anthropic_client()
@@ -710,6 +776,9 @@ def generate_article():
         - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 750)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 1000)} words
         - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
         - Author voice: First person, as Dustin Lemick, CEO of BriteCo
+
+        BRAND EDITORIAL RULES (follow these strictly for all writing):
+        {brand_guide}
 
         SUBHEADING FORMAT:
         {"ALL CAPS" if publication.lower() == 'fastcompany' else "Sentence case phrases"}
@@ -765,6 +834,7 @@ def rewrite_article():
 
     try:
         style_guide = load_style_guide(publication)
+        brand_guide = load_brand_guide()
         client = get_anthropic_client()
 
         prompt = f"""
@@ -779,6 +849,9 @@ def rewrite_article():
         - Maintain the {publication} style and format
         - Keep subheadings in {"ALL CAPS" if publication.lower() == 'fastcompany' else "sentence case"}
         - Target word count: {style_guide.get('specifications', {}).get('word_count', {}).get('typical', 850)} words
+
+        BRAND EDITORIAL RULES (follow these strictly):
+        {brand_guide}
 
         Provide the complete rewritten article.
         """
