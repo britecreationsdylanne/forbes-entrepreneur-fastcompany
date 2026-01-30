@@ -2328,6 +2328,7 @@
                 month: state.month,
                 year: state.year,
                 current_step: state.currentStep,
+                user_email: currentUser ? currentUser.email : null,
                 data: {
                     topic: state.selectedTopic,
                     transcription: state.transcription,
@@ -2481,6 +2482,7 @@
                         📌
                     </button>
                     ${isSaved ? '<div style="position: absolute; top: 34px; right: 2px; font-size: 9px; color: #d97706; font-weight: 600; white-space: nowrap;">saved for later</div>' : ''}
+                    ${topic._isOriginal ? '<div style="display: inline-block; background: var(--primary); color: white; font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 30px; margin-bottom: 6px;">ORIGINAL TOPIC</div>' : ''}
                     <h4 style="margin-left: 30px;">${topic.headline}</h4>
                     <p>${topic.angle}</p>
                     <p class="timeliness">⏰ ${topic.timeliness}</p>
@@ -2534,8 +2536,9 @@
             if (result.success && result.topics && result.topics.length > 0) {
                 state.selectedTopic = null;
                 document.getElementById('step2Next').disabled = true;
-                // Keep original topic at the top so user can see what they started with
-                state.topics = [topic, ...result.topics];
+                // Keep original topic at the top, flagged so render can label it
+                const originalTopic = { ...topic, _isOriginal: true };
+                state.topics = [originalTopic, ...result.topics];
                 renderTopics();
             } else {
                 alert('Error generating variations: ' + (result.error || 'Unknown error'));
@@ -2614,6 +2617,17 @@
             document.getElementById('inspirationContent').style.display = 'none';
             document.getElementById('inspirationContent').innerHTML = '';
             document.getElementById('inspirationBtn').textContent = '💡 Need More Inspiration?';
+
+            // Log topic choice to GCS for future improvement
+            apiCall('/log-topic-choice', 'POST', {
+                publication: state.publication,
+                month: state.month,
+                year: state.year,
+                action: 'select',
+                selected_topic: state.selectedTopic,
+                all_topics: state.topics,
+                user_email: currentUser ? currentUser.email : null
+            });
 
             showPanel(3);
             loadTalkingPoints();

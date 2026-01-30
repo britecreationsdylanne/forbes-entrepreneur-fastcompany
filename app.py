@@ -887,9 +887,9 @@ def save_draft():
         data = request.json
         draft_id = data.get('draft_id') or str(uuid.uuid4())
 
-        # Get current user for creator tracking
+        # Get current user for creator tracking (session first, frontend fallback)
         current_user = get_current_user()
-        user_email = current_user.get('email', 'Unknown') if current_user else 'Unknown'
+        user_email = current_user.get('email', 'Unknown') if current_user else data.get('user_email', 'Unknown')
 
         # Check if draft already exists to preserve created_at and created_by
         existing_draft = {}
@@ -1086,6 +1086,44 @@ def list_completed():
 
     except Exception as e:
         return jsonify({'completed': [], 'error': str(e)})
+
+# ===================
+# Routes - Topic Choice Logging (GCS)
+# ===================
+
+@app.route('/api/log-topic-choice', methods=['POST'])
+def log_topic_choice():
+    """Log a topic selection to GCS for future algorithm improvement"""
+    if not gcs_client:
+        return jsonify({'success': True})  # Silently skip if GCS unavailable
+
+    try:
+        data = request.json
+        current_user = get_current_user()
+        user_email = current_user.get('email', 'Unknown') if current_user else data.get('user_email', 'Unknown')
+
+        log_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'user': user_email,
+            'publication': data.get('publication'),
+            'month': data.get('month'),
+            'year': data.get('year'),
+            'action': data.get('action', 'select'),  # select, generate_variations, use_saved
+            'selected_topic': data.get('selected_topic'),
+            'all_topics_shown': data.get('all_topics', []),
+            'was_variation': data.get('was_variation', False),
+            'original_topic': data.get('original_topic')
+        }
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob_name = f"topic-logs/{datetime.now().strftime('%Y-%m')}/{uuid.uuid4()}.json"
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(json.dumps(log_entry, indent=2), content_type='application/json')
+
+        return jsonify({'success': True})
+
+    except Exception:
+        return jsonify({'success': True})  # Never fail the user flow for logging
 
 # ===================
 # Routes - Saved Topics (GCS) - Organized by Publication
