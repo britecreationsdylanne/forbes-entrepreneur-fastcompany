@@ -2534,7 +2534,8 @@
             if (result.success && result.topics && result.topics.length > 0) {
                 state.selectedTopic = null;
                 document.getElementById('step2Next').disabled = true;
-                state.topics = result.topics;
+                // Keep original topic at the top so user can see what they started with
+                state.topics = [topic, ...result.topics];
                 renderTopics();
             } else {
                 alert('Error generating variations: ' + (result.error || 'Unknown error'));
