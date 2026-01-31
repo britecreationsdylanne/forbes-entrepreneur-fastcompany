@@ -388,7 +388,7 @@ def generate_topics():
 
         PUBLICATION STYLE:
         - Publication: {style_guide.get('publication_full_name', publication)}
-        - Typical word count: {style_guide.get('specifications', {}).get('word_count', {}).get('typical', 850)} words
+        - Typical word count: 700-800 words
         - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
         - Author: Dustin Lemick, CEO of BriteCo (jewelry/watch insurance, insurtech)
 
@@ -662,7 +662,7 @@ def generate_inspiration():
 
         AUTHOR: Dustin Lemick, CEO of BriteCo — an insurtech company providing specialty jewelry and watch insurance.
         PUBLICATION TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
-        TARGET WORD COUNT: {style_guide.get('specifications', {}).get('word_count', {}).get('typical', 850)} words
+        TARGET WORD COUNT: 700-800 words
 
         Generate a detailed article brief to inspire and guide the CEO before recording. Format as HTML with the following sections:
 
@@ -773,7 +773,7 @@ def generate_article():
         {transcription}
 
         STYLE REQUIREMENTS:
-        - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 750)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 1000)} words
+        - Word count: 700-800 words (this is a strict requirement — do not exceed 800 words)
         - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
         - Author voice: First person, as Dustin Lemick, CEO of BriteCo
 
@@ -848,7 +848,7 @@ def rewrite_article():
         STYLE REQUIREMENTS:
         - Maintain the {publication} style and format
         - Keep subheadings in {"ALL CAPS" if publication.lower() == 'fastcompany' else "sentence case"}
-        - Target word count: {style_guide.get('specifications', {}).get('word_count', {}).get('typical', 850)} words
+        - Target word count: 700-800 words (strict — do not exceed 800 words)
 
         BRAND EDITORIAL RULES (follow these strictly):
         {brand_guide}
