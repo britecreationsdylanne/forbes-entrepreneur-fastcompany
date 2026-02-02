@@ -7,14 +7,14 @@
 
   "specifications": {
     "word_count": {
-      "min": 750,
-      "max": 1100,
-      "typical": 850
+      "min": 700,
+      "max": 800,
+      "typical": 750
     },
     "character_count": {
-      "min": 4500,
-      "max": 6500,
-      "typical": 5100
+      "min": 4200,
+      "max": 4800,
+      "typical": 4500
     }
   },
 
@@ -22,7 +22,7 @@
     {
       "type": "philosophical",
       "description": "Reflective thought leadership exploring nuanced business concepts",
-      "word_count": "750-850",
+      "word_count": "700-750",
       "structure": {
         "intro": "Hook with famous quote, fable, or common saying",
         "body": "3 themed sections with phrase-based subheadings",
@@ -34,7 +34,7 @@
     {
       "type": "tactical",
       "description": "Actionable how-to guides with numbered steps",
-      "word_count": "1000-1100",
+      "word_count": "750-800",
       "structure": {
         "intro": "Context setting with personal experience reference",
         "body": "Numbered list (1. 2. 3. etc.) with detailed explanations",
@@ -46,7 +46,7 @@
     {
       "type": "personal_narrative",
       "description": "Vulnerable founder journey sharing lessons learned",
-      "word_count": "900-1000",
+      "word_count": "700-800",
       "structure": {
         "intro": "Personal admission or struggle",
         "body": "Multiple short sections (5-7) with phrase subheadings",
@@ -58,7 +58,7 @@
     {
       "type": "educational_guide",
       "description": "Phase-based instruction for business stages",
-      "word_count": "850-950",
+      "word_count": "700-800",
       "structure": {
         "intro": "Relatable founder struggle",
         "body": "Phase-based sections (Startup Phase, Growth Phase, etc.)",
@@ -183,6 +183,57 @@
     "case_studies": "Other companies occasionally referenced"
   },
 
+  "submission_guidelines": {
+    "platform": "YEC (Young Entrepreneur Council)",
+    "editorial_timeline": "3-5 weeks minimum for editorial process",
+    "word_count_range": "500-1000 (700-800 performs best)",
+    "content_rules": [
+      "Content must be 100% original and previously unpublished (including personal blog, LinkedIn, etc.)",
+      "Write about your industry and area of expertise — expert advice, how-to content, commentary",
+      "No self-promotion or sales pitches — inform and educate, do not sell",
+      "Include unique insights and expertise — avoid generic advice readers have heard before",
+      "Avoid jargon, long quoted passages, or academic-style writing",
+      "Include a clear takeaway so audience remembers the advice",
+      "Must include an introduction and a conclusion",
+      "No co-authors",
+      "No photos, videos, or special formatting",
+      "No book excerpts (can write about concepts from books)",
+      "No press releases",
+      "No puff pieces or listicles about vendors, products, or people",
+      "No offensive, partisan, or discriminatory content — no religion or politics",
+      "Avoid statements that guarantee success or results",
+      "Do not criticize companies or people — focus on positive, tactical insight",
+      "No interviews or quotes from third parties — you are an expert sharing your own knowledge",
+      "Fact check everything before submission"
+    ],
+    "link_policy": [
+      "No company links, product links, service links, or client links in article body (company link is in byline only)",
+      "No keyword links, affiliate links, or lead-gen links",
+      "Links must serve to edify the reader or support a statement of fact",
+      "All linked sources must be authoritative and trusted (major publications, research reports, reputable news)",
+      "Wikipedia is NOT a reputable source",
+      "No links to company websites or blog posts on company websites",
+      "All data and sources should be from the last 2 years",
+      "When quoting published material, use double quotes and hyperlink to original source",
+      "Link relevant words only, not full sentences"
+    ],
+    "attribution_rules": [
+      "All sources must be attributed with hyperlinks and be trustworthy",
+      "Provide links to corroborate any study, statistic, excerpt, or research not common knowledge",
+      "Link to actual information cited (e.g., the study itself, not a news article about it)",
+      "When quoting exact material published elsewhere, link to source and use double quotes",
+      "Indirect quotes (paraphrased speech) do not need quotation marks but still require citation",
+      "Do not solicit quotes or interviews from third parties"
+    ],
+    "conflicts_of_interest": [
+      "Disclose any actual or potential conflicts of interest",
+      "May not own stock or have financial interest in companies covered",
+      "If mentioning a business interest, must explain affiliation and disclose conflicts to readers",
+      "No sponsored content or content created on behalf of a brand/vendor"
+    ],
+    "serial_comma": true
+  },
+
   "avoid": [
     "Hard statistics throughout (observation-based preferred)",
     "Black and white conclusions",
@@ -191,7 +242,14 @@
     "ALL CAPS formatting",
     "Competitor bashing",
     "Political statements",
-    "Personnel news"
+    "Personnel news",
+    "Self-promotion or sales pitches",
+    "Guaranteed success claims",
+    "Third-party interviews or quotes",
+    "Company/client/affiliate links in article body",
+    "Wikipedia as a source",
+    "Data older than 2 years",
+    "Offensive, partisan, or discriminatory content"
   ],
 
   "sample_headlines": [

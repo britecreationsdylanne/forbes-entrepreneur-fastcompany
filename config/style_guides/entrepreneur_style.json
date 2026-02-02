@@ -8,13 +8,13 @@
   "specifications": {
     "word_count": {
       "min": 800,
-      "max": 1100,
-      "typical": 900
+      "max": 900,
+      "typical": 850
     },
     "character_count": {
       "min": 4800,
-      "max": 6800,
-      "typical": 5500
+      "max": 5400,
+      "typical": 5100
     }
   },
 
@@ -31,7 +31,7 @@
     {
       "type": "sectioned",
       "description": "Challenge conventional wisdom with phrase-based sections",
-      "word_count": "800-950",
+      "word_count": "800-850",
       "structure": {
         "intro": "Contrarian hook challenging common belief",
         "key_takeaways": "3 bullet points at top",
@@ -44,7 +44,7 @@
     {
       "type": "numbered_list",
       "description": "Actionable numbered tips or things to know",
-      "word_count": "900-1000",
+      "word_count": "850-900",
       "structure": {
         "intro": "Context and why this matters",
         "key_takeaways": "3 bullet points at top",
@@ -58,7 +58,7 @@
     {
       "type": "flowing_narrative",
       "description": "Essay-style thought piece without explicit section headers",
-      "word_count": "1000-1100",
+      "word_count": "850-900",
       "structure": {
         "intro": "Problem statement or observation",
         "key_takeaways": "3 bullet points at top",
@@ -241,9 +241,11 @@
 
   "related_links": {
     "format": "Related: [Article Title]",
-    "frequency": "2-4 per article",
-    "placement": "Interspersed throughout body",
-    "note": "These are added by Entrepreneur editors, not author"
+    "frequency": "3 per article minimum",
+    "placement": "Right before sub-heds to minimize reading interruption",
+    "style": "Bold, normal font — type 'Related: Article Title' with title linked",
+    "source": "Search Entrepreneur.com for related articles from the last few years",
+    "note": "Contributors should add these while building the story — can link to own past stories if relevant"
   },
 
   "statistics_usage": {
@@ -252,13 +254,78 @@
     "format": "According to [Source], [stat]..."
   },
 
+  "submission_guidelines": {
+    "platform": "Entrepreneur Leadership Network (ELN)",
+    "editorial_timeline": "2-4 week wait for premium members",
+    "frequency": "1-2 articles per month recommended",
+    "content_rules": [
+      "Content must be 100% original and previously unpublished",
+      "Advice-driven articles sharing thoughts, experiences, and problem-solving techniques",
+      "No interviews or quotes from non-household name business leaders/experts",
+      "No overly promotional content — articles bolster credibility, not promote",
+      "No paid links or mentions — no editorial coverage in exchange for compensation",
+      "No profiles or Q&As of non-household name entrepreneurs",
+      "No ChatGPT/AI-generated text — articles are run through AI detector",
+      "No plagiarism or copyright infringement",
+      "No photos — leave all imagery to editors",
+      "Proofread and spell-check before submitting",
+      "Factual accuracy required — confirm facts using several sources",
+      "Can repost on own website/blog 10 days after publication with link back to original"
+    ],
+    "link_policy": [
+      "Only link a few words at a time (not whole phrases — distracting to readers)",
+      "Cite reputable publications, not blogs (including your own)",
+      "Can link to your own blog maximum one time per story (editors may remove if self-promotional)",
+      "For statistics, link to the original study, not another article citing the study",
+      "When quoting someone, link to the original source",
+      "Do NOT link to Forbes, Fast Company, or Inc. (competitors)",
+      "Put in your own hyperlinks — do not put URLs in parentheses or citations below"
+    ],
+    "conflicts_of_interest": [
+      "Discouraged from writing about anything with financial relationship",
+      "Discouraged from writing about anyone with social relationship",
+      "If mentioning friends or business partners, check with editor first",
+      "If approved, must disclose the relationship in the story"
+    ]
+  },
+
+  "style_rules": {
+    "serial_comma": false,
+    "serial_comma_note": "OVERRIDE: Entrepreneur does NOT use serial comma (apples, oranges and bananas) — this overrides the BriteCo brand guide for this publication",
+    "em_dashes": "Em dashes with a space on either side",
+    "quotation_marks": "Commas and periods go inside end quote marks ALWAYS",
+    "double_spaces": "No double spaces after periods",
+    "single_quotes": "Only around quotes within quotes and in headlines/subheads — nowhere else",
+    "formatting": "No bold, no italics (except publication titles), no all-caps words (unless company name is stylized that way)",
+    "subheads": "At least 2 subheads per article — Heading 2 format, lowercase sentence format, no period at end, parallel structure",
+    "paragraphs": "2-3 sentences ideal — use one-sentence paragraphs sparingly",
+    "pronouns": "Be consistent — if you start with 'you', stick with it. Avoid mixing we/I/he/she/you",
+    "pronouns_gender": "Use gender-neutral language — pluralize to use 'they' when possible",
+    "company_pronouns": "A company/organization is 'it' never 'they' — use 'its' not 'their' for possessive",
+    "verb_tense": "Be consistent throughout — present perfect for ongoing/habitual action",
+    "numbers": "Under 10 written out (unless percentages). 10+ as numerals (unless starting a sentence). Years always numerals. Use % sign not 'percent'. Use 'more than' not 'over' with numbers.",
+    "names": "Full name on first reference (Mark Zuckerberg). Last name only after (Zuckerberg). Never first name only.",
+    "quotes_sourcing": "Check quotes with reliable sources — Brainyquote and unedited blogs are not reliable",
+    "jargon": "Spell out abbreviations/acronyms on first reference with abbreviation in parentheses. Avoid 'SMB'.",
+    "repetition": "Check for repetition of same words, points, and themes",
+    "evergreen": "Try to keep content useful indefinitely — avoid dating to specific moment in time where possible"
+  },
+
   "avoid": [
     "Passive voice",
     "Hedging language",
     "Over-qualifying statements",
     "ALL CAPS subheadings",
     "Clickbait without substance",
-    "Generic advice without examples"
+    "Generic advice without examples",
+    "Serial comma (Entrepreneur does NOT use it)",
+    "Linking to Forbes, Fast Company, or Inc. (competitors)",
+    "AI-generated text (run through AI detector)",
+    "Interviews/quotes from non-household name figures",
+    "Bold text, italics (except publication titles), all-caps words",
+    "Double spaces after periods",
+    "Inconsistent pronouns or verb tenses",
+    "URLs in parentheses instead of embedded hyperlinks"
   ],
 
   "sample_headlines": [

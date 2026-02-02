@@ -238,7 +238,7 @@ Fast Company articles often include specific tool/platform recommendations:
 | Element | Fast Company | Forbes | Entrepreneur |
 |---------|--------------|--------|--------------|
 | **Subheadings** | ALL CAPS | Sentence case | Sentence case |
-| **Length** | 700-900 | 750-1100 | 800-1100 |
+| **Length** | 700-900 | 700-800 | 800-900 |
 | **Tone** | Direct, punchy | Reflective, nuanced | Provocative, challenging |
 | **Key Takeaways** | No | No | Yes (required) |
 | **BriteCo mentions** | 1-3 | 2-4 | 2-5 |

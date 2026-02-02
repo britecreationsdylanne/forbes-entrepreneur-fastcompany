@@ -13,9 +13,9 @@ Forbes Business Council articles are **reflective thought leadership pieces** th
 
 | Element | Range |
 |---------|-------|
-| **Word Count** | 750-1,100 words |
-| **Character Count** | 4,500-6,500 characters |
-| **Typical Length** | ~850 words |
+| **Word Count** | 700-800 words |
+| **Character Count** | 4,200-4,800 characters |
+| **Typical Length** | ~750 words |
 
 ---
 
@@ -29,7 +29,7 @@ Forbes Business Council articles are **reflective thought leadership pieces** th
 - **Body:** 3 themed sections with phrase-based subheadings
 - **Conclusion:** Nuanced wrap-up paragraph (no explicit header)
 
-**Word Count:** 750-850 words
+**Word Count:** 700-750 words
 
 **Example Subheadings:**
 - "There's a very fine line."
@@ -46,7 +46,7 @@ Forbes Business Council articles are **reflective thought leadership pieces** th
 - **Body:** Numbered list (1. 2. 3. 4. 5.) with explanations
 - **Conclusion:** "Final Thoughts" section
 
-**Word Count:** 1,000-1,100 words
+**Word Count:** 750-800 words
 
 **Example Subheadings:**
 - "1. Full-team meetings are important."
@@ -63,7 +63,7 @@ Forbes Business Council articles are **reflective thought leadership pieces** th
 - **Body:** 5-7 short sections with phrase subheadings
 - **Conclusion:** Reassuring message about growth
 
-**Word Count:** 900-1,000 words
+**Word Count:** 700-800 words
 
 **Example Subheadings:**
 - "Learning To Let Go"
@@ -81,7 +81,7 @@ Forbes Business Council articles are **reflective thought leadership pieces** th
 - **Body:** Phase-based sections (Startup Phase, Growth Phase)
 - **Conclusion:** "Overview" section
 
-**Word Count:** 850-950 words
+**Word Count:** 700-800 words
 
 ---
 
@@ -170,6 +170,52 @@ Forbes Business Council articles are **reflective thought leadership pieces** th
 
 ---
 
+## YEC Submission Guidelines
+
+**Platform:** YEC (Young Entrepreneur Council) / Forbes Business Council
+**Editorial Timeline:** 3-5 weeks minimum
+
+### Content Rules
+- Content must be **100% original and previously unpublished** (including personal blog, LinkedIn, etc.)
+- Write about your industry and area of expertise — expert advice, how-to content, commentary
+- **No self-promotion or sales pitches** — inform and educate, do not sell
+- Include unique insights and expertise — avoid generic advice readers have heard before
+- Avoid jargon, long quoted passages, or academic-style writing
+- Include a clear takeaway so audience remembers the advice
+- Must include an introduction and a conclusion
+- No co-authors
+- No photos, videos, or special formatting
+- No book excerpts (can write about concepts from books)
+- No puff pieces or listicles about vendors, products, or people
+- No offensive, partisan, or discriminatory content — no religion or politics
+- Avoid statements that guarantee success or results
+- Do not criticize companies or people — focus on positive, tactical insight
+- **No interviews or quotes from third parties** — you are an expert sharing your own knowledge
+- Fact check everything before submission
+
+### Link Policy
+- **No company/product/service/client links in article body** (company link is in byline only)
+- No keyword links, affiliate links, or lead-gen links
+- Links must edify the reader or support a statement of fact
+- All linked sources must be **authoritative and trusted** (major publications, research reports, reputable news)
+- **Wikipedia is NOT a reputable source**
+- All data and sources should be **from the last 2 years**
+- Link relevant words only (e.g., "a January study from Gallup"), not full sentences
+- When quoting published material, use double quotes and hyperlink to original source
+
+### Attribution Rules
+- Provide links to corroborate any study, statistic, or research not common knowledge
+- Link to actual information cited (the study itself, not a news article about it)
+- Do not solicit quotes or interviews from third parties
+- Indirect quotes (paraphrased speech) still require citation
+
+### Conflicts of Interest
+- Disclose any actual or potential conflicts of interest
+- If mentioning a business interest, must explain affiliation and disclose to readers
+- No sponsored content or content created on behalf of a brand/vendor
+
+---
+
 ## What to Avoid
 
 - ❌ Hard statistics throughout (observation-based preferred)
@@ -180,6 +226,13 @@ Forbes Business Council articles are **reflective thought leadership pieces** th
 - ❌ Competitor bashing
 - ❌ Political statements
 - ❌ Personnel news
+- ❌ Self-promotion or sales pitches
+- ❌ Guaranteed success claims
+- ❌ Third-party interviews or quotes
+- ❌ Company/client/affiliate links in article body
+- ❌ Wikipedia as a source
+- ❌ Data older than 2 years
+- ❌ Offensive, partisan, or discriminatory content
 
 ---
 

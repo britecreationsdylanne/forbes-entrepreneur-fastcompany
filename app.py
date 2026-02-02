@@ -388,7 +388,7 @@ def generate_topics():
 
         PUBLICATION STYLE:
         - Publication: {style_guide.get('publication_full_name', publication)}
-        - Typical word count: 700-800 words
+        - Typical word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words
         - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
         - Author: Dustin Lemick, CEO of BriteCo (jewelry/watch insurance, insurtech)
 
@@ -662,7 +662,7 @@ def generate_inspiration():
 
         AUTHOR: Dustin Lemick, CEO of BriteCo — an insurtech company providing specialty jewelry and watch insurance.
         PUBLICATION TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
-        TARGET WORD COUNT: 700-800 words
+        TARGET WORD COUNT: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words
 
         Generate a detailed article brief to inspire and guide the CEO before recording. Format as HTML with the following sections:
 
@@ -773,7 +773,7 @@ def generate_article():
         {transcription}
 
         STYLE REQUIREMENTS:
-        - Word count: 700-800 words (this is a strict requirement — do not exceed 800 words)
+        - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (this is a strict requirement — do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
         - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
         - Author voice: First person, as Dustin Lemick, CEO of BriteCo
 
@@ -784,6 +784,8 @@ def generate_article():
         {"ALL CAPS" if publication.lower() == 'fastcompany' else "Sentence case phrases"}
 
         {"KEY TAKEAWAYS REQUIRED: Include 3 bullet points at the top summarizing main insights" if publication.lower() == 'entrepreneur' else ""}
+
+        {"PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
 
         STRUCTURE:
         {json.dumps(style_guide.get('article_formats', [{}])[0].get('structure', {}), indent=2)}
@@ -848,10 +850,12 @@ def rewrite_article():
         STYLE REQUIREMENTS:
         - Maintain the {publication} style and format
         - Keep subheadings in {"ALL CAPS" if publication.lower() == 'fastcompany' else "sentence case"}
-        - Target word count: 700-800 words (strict — do not exceed 800 words)
+        - Target word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (strict — do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
 
         BRAND EDITORIAL RULES (follow these strictly):
         {brand_guide}
+
+        {"PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
 
         Provide the complete rewritten article.
         """

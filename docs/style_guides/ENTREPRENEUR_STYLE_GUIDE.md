@@ -13,9 +13,9 @@ Entrepreneur articles are **provocative, practical thought leadership** that cha
 
 | Element | Range |
 |---------|-------|
-| **Word Count** | 800-1,100 words |
-| **Character Count** | 4,800-6,800 characters |
-| **Typical Length** | ~900 words |
+| **Word Count** | 800-900 words |
+| **Character Count** | 4,800-5,400 characters |
+| **Typical Length** | ~850 words |
 
 ---
 
@@ -49,7 +49,7 @@ Key Takeaways
 - **Body:** 3-4 sections with phrase-based subheadings
 - **Conclusion:** Action-oriented wrap-up (no explicit header)
 
-**Word Count:** 800-950 words
+**Word Count:** 800-850 words
 
 **Example Subheadings:**
 - "It's not one or the other — It's both"
@@ -68,7 +68,7 @@ Key Takeaways
 - **Body:** Numbered sections (1. 2. 3. 4. 5.)
 - **Conclusion:** Final tip serves as natural wrap
 
-**Word Count:** 900-1,000 words
+**Word Count:** 850-900 words
 
 **Headline Pattern:** "X Things/Ways to [Action]"
 
@@ -88,7 +88,7 @@ Key Takeaways
 - **Body:** Flowing paragraphs (no section headers)
 - **Conclusion:** Call to action or reflection
 
-**Word Count:** 1,000-1,100 words
+**Word Count:** 850-900 words
 
 **Note:** "Related:" links are interspersed by editors
 
@@ -213,11 +213,72 @@ Pop culture or current events:
 
 ## Related Links
 
-**Note:** These are added by Entrepreneur editors, not the author.
+**Contributors should add these while building the story.**
 
-**Format:** `Related: [Article Title]`
+**Format:** `Related: [Article Title]` — bold, normal font, with title hyperlinked
 
-**Frequency:** 2-4 per article, interspersed throughout body
+**Frequency:** 3 per article minimum
+
+**Placement:** Right before sub-heds to minimize reading interruption
+
+**Source:** Search Entrepreneur.com for related articles from the last few years
+
+**Note:** Can link to your own past Entrepreneur stories if relevant
+
+---
+
+## ELN Submission Guidelines
+
+**Platform:** Entrepreneur Leadership Network (ELN)
+**Editorial Timeline:** 2-4 weeks for premium members
+**Frequency:** 1-2 articles per month recommended
+
+### Content Rules
+- Content must be **100% original and previously unpublished**
+- Advice-driven articles sharing experiences and problem-solving techniques
+- **No interviews or quotes** from non-household name business leaders/experts
+- No overly promotional content — articles bolster credibility, not promote
+- No paid links or mentions — no editorial coverage in exchange for compensation
+- **No ChatGPT/AI-generated text** — articles are run through AI detector
+- No plagiarism or copyright infringement
+- No photos — leave all imagery to editors
+- Proofread and spell-check before submitting
+- Can repost on own website/blog **10 days after publication** with link back to original
+
+### Link Policy
+- Only link **a few words** at a time (not whole phrases)
+- Cite reputable publications, not blogs
+- Can link to your own blog **maximum one time** per story (editors may remove)
+- For statistics, link to **the original study**, not another article citing it
+- **Do NOT link to Forbes, Fast Company, or Inc.** (competitors)
+- Put in your own hyperlinks — do not put URLs in parentheses
+
+### Conflicts of Interest
+- Discouraged from writing about anything with financial relationship
+- If mentioning friends/business partners, check with editor first and disclose in story
+
+---
+
+## ELN Style Rules (Overrides)
+
+**IMPORTANT:** These override the BriteCo brand guide where they conflict.
+
+| Rule | Entrepreneur Style |
+|------|-------------------|
+| **Serial comma** | **NO** (apples, oranges and bananas) |
+| **Em dashes** | Space on either side |
+| **Quotes** | Commas/periods ALWAYS inside end quote marks |
+| **Double spaces** | None after periods |
+| **Single quotes** | Only for quotes within quotes and headlines/subheads |
+| **Formatting** | No bold, no italics (except publication titles), no all-caps |
+| **Subheads** | At least 2 per article, Heading 2, lowercase sentence case, no period, parallel structure |
+| **Paragraphs** | 2-3 sentences ideal, one-sentence paragraphs sparingly |
+| **Pronouns** | Consistent throughout — don't mix we/I/he/she/you |
+| **Company pronouns** | Company is "it" not "they" — use "its" not "their" |
+| **Numbers** | Under 10 written out (except %), 10+ as numerals, use % sign, "more than" not "over" |
+| **Names** | Full name first reference, last name only after, never first name only |
+| **Jargon** | Spell out on first reference with abbreviation in parentheses |
+| **Evergreen** | Keep content useful indefinitely — avoid dating to specific moment |
 
 ---
 
@@ -230,6 +291,14 @@ Pop culture or current events:
 - ❌ Clickbait without substance
 - ❌ Generic advice without BriteCo examples
 - ❌ Wishy-washy conclusions
+- ❌ **Serial comma** (Entrepreneur does NOT use it)
+- ❌ Linking to Forbes, Fast Company, or Inc. (competitors)
+- ❌ AI-generated text (run through AI detector)
+- ❌ Interviews/quotes from non-household name figures
+- ❌ Bold text, italics (except publication titles), all-caps words
+- ❌ Double spaces after periods
+- ❌ Inconsistent pronouns or verb tenses
+- ❌ URLs in parentheses instead of embedded hyperlinks
 
 ---
 

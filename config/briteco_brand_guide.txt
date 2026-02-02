@@ -21,9 +21,9 @@ ABBREVIATIONS
   Incorrect: Washington, D.C.
 
 PUNCTUATION
-- Use a serial comma when writing out a list
-  Correct: Our jewelry insurance covers theft, loss, and damages.
-  Incorrect: Our jewelry insurance covers theft, loss and damages.
+- Use a serial comma when writing out a list (NOTE: Entrepreneur overrides this — no serial comma for Entrepreneur articles)
+  Forbes/Fast Company: Our jewelry insurance covers theft, loss, and damages.
+  Entrepreneur: Our jewelry insurance covers theft, loss and damages.
 - Use an em dash when offsetting copy in a sentence (not a hyphen) with spaces around it
   Correct: Engagement rings — while pricey — are a worthwhile investment.
   Incorrect: Engagement rings—while pricey—are a worthwhile investment.
@@ -69,6 +69,16 @@ TONE — JEWELRY
 - When mentioning health claims or benefits, never promise results; use softer language
   Correct: Copper may be helpful with boosting immune function.
   Incorrect: Wearing copper will increase immune function.
+
+PER-PUBLICATION OVERRIDES
+- Entrepreneur: No serial comma (overrides the general rule above)
+- Entrepreneur: Do not link to Forbes, Fast Company, or Inc. (competitors)
+- Entrepreneur: Numbers under 10 written out (except percentages); 10+ as numerals; use % sign; use "more than" not "over" with numbers
+- Entrepreneur: Full name on first reference, last name only after, never first name only
+- Entrepreneur: A company/organization is "it" not "they" — use "its" not "their"
+- Forbes: No company/product/service links in article body (company link in byline only)
+- Forbes: All data and sources from the last 2 years; no Wikipedia
+- Forbes: No third-party interviews or quotes
 
 GLOSSARY
 - Homeowners policy (not Homeowner's or Homeowners')
