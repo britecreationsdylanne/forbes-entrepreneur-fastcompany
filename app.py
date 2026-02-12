@@ -145,6 +145,66 @@ def get_perplexity_client():
         base_url="https://api.perplexity.ai"
     )
 
+def sanitize_llm_output(text: str) -> str:
+    """Post-process generated text to remove common LLM writing artifacts"""
+    import re
+
+    # Replace em dashes (with or without spaces) with comma-based or simpler phrasing
+    # " — " or "—" → ", " or " - "
+    text = text.replace(' — ', ', ')
+    text = text.replace(' —', ',')
+    text = text.replace('— ', ', ')
+    text = text.replace('—', ', ')
+
+    # Remove overused LLM filler words/phrases (case-insensitive replacements)
+    llm_phrases = [
+        (r'\bdelve(?:s|d)?\b', 'explore'),
+        (r'\bdelving\b', 'exploring'),
+        (r'\bIt\'s worth noting that\s*', ''),
+        (r'\bIt is worth noting that\s*', ''),
+        (r'\bIn today\'s rapidly (?:evolving|changing) (?:landscape|world)\b', 'Today'),
+        (r'\bIn today\'s (?:landscape|world|environment|climate)\b', 'Today'),
+        (r'\brapidly evolving landscape\b', 'changing market'),
+        (r'\bever-evolving landscape\b', 'shifting market'),
+        (r'\bever-changing landscape\b', 'shifting market'),
+        (r'\bthe landscape of\b', 'the world of'),
+        (r'\bnavigate the (?:complex |)landscape\b', 'work through the challenges'),
+        (r'\bpivotal\b', 'important'),
+        (r'\bcrucial\b', 'important'),
+        (r'\bmoreover\b', 'also'),
+        (r'\bfurthermore\b', 'also'),
+        (r'\badditionally\b', 'also'),
+        (r'\bindeed\b', 'really'),
+        (r'\bMultifaceted\b', 'Complex'),
+        (r'\bmultifaceted\b', 'complex'),
+        (r'\btapestry\b', 'mix'),
+        (r'\bunlock(?:ing)? the (?:full )?potential\b', 'get the most out'),
+        (r'\bparadigm shift\b', 'big change'),
+        (r'\bparadigm\b', 'model'),
+        (r'\bsynergy\b', 'teamwork'),
+        (r'\bholistic\b', 'complete'),
+        (r'\bseamless(?:ly)?\b', 'smooth'),
+        (r'\bleverage\b', 'use'),
+        (r'\bLeverage\b', 'Use'),
+        (r'\butilize\b', 'use'),
+        (r'\bUtilize\b', 'Use'),
+        (r'\bfacilitate\b', 'help with'),
+        (r'\bcommence\b', 'start'),
+        (r'\brobust\b', 'strong'),
+        (r'\bRobust\b', 'Strong'),
+    ]
+
+    for pattern, replacement in llm_phrases:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE if pattern[0] != '\\' or 'A-Z' not in pattern else 0)
+
+    # Clean up any double commas or comma-space issues from em dash replacement
+    text = re.sub(r',\s*,', ',', text)
+    text = re.sub(r',\s+,', ',', text)
+    # Fix cases where em dash replacement created ", , " or leading commas
+    text = re.sub(r'\s,\s(?=[a-z])', ' ', text)
+
+    return text
+
 def get_google_docs_service():
     """Get Google Docs API service"""
     from google.oauth2 import service_account
@@ -660,24 +720,24 @@ def generate_inspiration():
         Why it's timely: {topic.get('timeliness', '')}
         BriteCo Connection: {topic.get('briteco_connection', '')}
 
-        AUTHOR: Dustin Lemick, CEO of BriteCo — an insurtech company providing specialty jewelry and watch insurance.
+        AUTHOR: Dustin Lemick, CEO of BriteCo, an insurtech company providing specialty jewelry and watch insurance.
         PUBLICATION TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
         TARGET WORD COUNT: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words
 
         Generate a detailed article brief to inspire and guide the CEO before recording. Format as HTML with the following sections:
 
-        1. <h4>Article Vision</h4> — A 2-3 sentence summary of what this article should accomplish and the reader takeaway.
+        1. <h4>Article Vision</h4>: A 2-3 sentence summary of what this article should accomplish and the reader takeaway.
 
-        2. <h4>Suggested Structure</h4> — An outline with:
+        2. <h4>Suggested Structure</h4>: An outline with:
            - Opening hook idea (1-2 specific options)
            - 3-4 section ideas with brief descriptions of what each should cover
            - Closing approach
 
-        3. <h4>Key Points to Cover</h4> — A bulleted list of 5-6 specific points, data angles, or arguments the article should make.
+        3. <h4>Key Points to Cover</h4>: A bulleted list of 5-6 specific points, data angles, or arguments the article should make.
 
-        4. <h4>BriteCo Stories & Examples</h4> — 3-4 specific prompts for personal stories, BriteCo experiences, or industry examples Dustin could share. Be specific — reference things a jewelry insurtech CEO would actually experience.
+        4. <h4>BriteCo Stories & Examples</h4>: 3-4 specific prompts for personal stories, BriteCo experiences, or industry examples Dustin could share. Be specific and reference things a jewelry insurtech CEO would actually experience.
 
-        5. <h4>Data & References to Consider</h4> — 3-4 types of statistics, studies, or expert perspectives that would strengthen the article. Suggest what to look up or mention.
+        5. <h4>Data & References to Consider</h4>: 3-4 types of statistics, studies, or expert perspectives that would strengthen the article. Suggest what to look up or mention.
 
         Return ONLY the HTML content (no markdown, no code blocks). Use <h4> for section headers, <ul><li> for lists, <p> for paragraphs, and <strong> for emphasis.
         """
@@ -773,7 +833,7 @@ def generate_article():
         {transcription}
 
         STYLE REQUIREMENTS:
-        - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (this is a strict requirement — do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
+        - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (this is a strict requirement, do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
         - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
         - Author voice: First person, as Dustin Lemick, CEO of BriteCo
 
@@ -797,6 +857,18 @@ def generate_article():
         SAMPLE SUBHEADINGS FROM THIS PUBLICATION:
         {json.dumps(style_guide.get('subheading_patterns', {}).get('examples', [])[:5], indent=2)}
 
+        ANTI-AI WRITING RULES (CRITICAL, follow these strictly to avoid detectable AI patterns):
+        - NEVER use em dashes (—) anywhere in the article. Use commas, periods, colons, or parentheses instead.
+        - NEVER use these words/phrases: "delve", "landscape", "navigate" (as metaphor), "leverage", "utilize", "pivotal", "crucial", "moreover", "furthermore", "additionally", "indeed", "multifaceted", "tapestry", "unlock potential", "paradigm", "synergy", "holistic", "seamless", "robust", "it's worth noting", "in today's rapidly evolving/changing", "foster", "facilitate", "commences", "harness", "realm"
+        - NEVER start paragraphs with "In today's..." or "In an era of..."
+        - Vary sentence length naturally. Mix short punchy sentences (5-8 words) with medium ones. Avoid a pattern where every sentence is 15-20 words.
+        - Use contractions naturally (don't, won't, it's, I've, we're). Avoid stiff phrasing like "do not" or "it is" unless for emphasis.
+        - Write like a real person talking to a colleague, not like an essay. Include occasional informal transitions ("Look,", "Here's the thing:", "The way I see it,").
+        - Avoid perfectly parallel structure in lists or consecutive paragraphs. Real writers vary their patterns.
+        - Don't overuse transitional phrases. Sometimes just start a new thought.
+        - Use specific, concrete details from the transcription rather than generic business platitudes.
+        - Prefer simple, everyday words over impressive-sounding ones (use "use" not "utilize", "help" not "facilitate", "start" not "commence").
+
         Write the complete article now. Make it engaging, insightful, and true to the CEO's voice from the transcription.
         """
 
@@ -809,6 +881,9 @@ def generate_article():
         )
 
         article_content = response.content[0].text
+
+        # Post-process to catch any remaining LLM artifacts
+        article_content = sanitize_llm_output(article_content)
 
         # Count words
         word_count = len(article_content.split())
@@ -850,12 +925,22 @@ def rewrite_article():
         STYLE REQUIREMENTS:
         - Maintain the {publication} style and format
         - Keep subheadings in {"ALL CAPS" if publication.lower() == 'fastcompany' else "sentence case"}
-        - Target word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (strict — do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
+        - Target word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (strict, do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
 
         BRAND EDITORIAL RULES (follow these strictly):
         {brand_guide}
 
         {"PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
+
+        ANTI-AI WRITING RULES (CRITICAL, follow these strictly to avoid detectable AI patterns):
+        - NEVER use em dashes (—) anywhere in the article. Use commas, periods, colons, or parentheses instead.
+        - NEVER use these words/phrases: "delve", "landscape", "navigate" (as metaphor), "leverage", "utilize", "pivotal", "crucial", "moreover", "furthermore", "additionally", "indeed", "multifaceted", "tapestry", "unlock potential", "paradigm", "synergy", "holistic", "seamless", "robust", "it's worth noting", "in today's rapidly evolving/changing", "foster", "facilitate", "commences", "harness", "realm"
+        - NEVER start paragraphs with "In today's..." or "In an era of..."
+        - Vary sentence length naturally. Mix short punchy sentences with medium ones.
+        - Use contractions naturally (don't, won't, it's, I've, we're).
+        - Write like a real person talking to a colleague, not like an essay.
+        - Avoid perfectly parallel structure in lists or consecutive paragraphs.
+        - Prefer simple, everyday words over impressive-sounding ones.
 
         Provide the complete rewritten article.
         """
@@ -868,10 +953,12 @@ def rewrite_article():
             ]
         )
 
+        rewritten = sanitize_llm_output(response.content[0].text)
+
         return jsonify({
             'success': True,
-            'article': response.content[0].text,
-            'word_count': len(response.content[0].text.split())
+            'article': rewritten,
+            'word_count': len(rewritten.split())
         })
 
     except Exception as e:

@@ -72,19 +72,19 @@
 
   "headline_patterns": [
     {
-      "pattern": "contrarian_em_dash",
-      "format": "[Statement] — Here's [Why/How/What]",
+      "pattern": "contrarian_statement",
+      "format": "[Statement]. Here's [Why/How/What]",
       "examples": [
-        "Annual Reviews Are Lazy — Here's How to Actually Learn From Your Work",
+        "Annual Reviews Are Lazy. Here's How to Actually Learn From Your Work",
         "Why Work-Life Balance is a Myth That's Making Entrepreneurs Miserable",
-        "Grace Is a Leadership Strategy — Here's How CEOs Can Use It Effectively"
+        "Grace Is a Leadership Strategy. Here's How CEOs Can Use It Effectively"
       ]
     },
     {
       "pattern": "statistic_hook",
-      "format": "[X%] of [Group] [Situation] — Here's How to [Action]",
+      "format": "[X%] of [Group] [Situation]. Here's How to [Action]",
       "examples": [
-        "58% of College Grads Are Still Job Hunting — Here's How to Attract & Retain Young Job Seekers"
+        "58% of College Grads Are Still Job Hunting. Here's How to Attract and Retain Young Job Seekers"
       ]
     },
     {
@@ -114,8 +114,8 @@
     "count": 3,
     "style": "Concise action-oriented statements",
     "examples": [
-      "Mistakes are inevitable — it's how you respond that shapes your company's culture and future.",
-      "Don't launch without research — timing beats speed every time.",
+      "Mistakes are inevitable. It's how you respond that shapes your company's culture and future.",
+      "Don't launch without research. Timing beats speed every time.",
       "Work-life balance is a myth; focus instead on intentional work-life integration."
     ]
   },
@@ -126,10 +126,10 @@
       "characteristics": [
         "Action-oriented but not commands",
         "Often frames the section's insight",
-        "May include em-dashes"
+        "May use colons or commas for clause separation"
       ],
       "examples": [
-        "It's not one or the other — It's both",
+        "It's not one or the other. It's both",
         "Making work meaningful",
         "Finding time for personal time",
         "What a good post-mortem looks like",
@@ -160,7 +160,7 @@
       "type": "statistic_hook",
       "description": "Open with compelling data point",
       "examples": [
-        "According to Fortune, more than half of new college graduates — 58% — are still looking for a job.",
+        "According to Fortune, more than half of new college graduates (58%) are still looking for a job.",
         "According to eMarketer, '88% of worldwide consumers say not trusting a brand is a dealbreaker...'"
       ]
     },
@@ -243,9 +243,9 @@
     "format": "Related: [Article Title]",
     "frequency": "3 per article minimum",
     "placement": "Right before sub-heds to minimize reading interruption",
-    "style": "Bold, normal font — type 'Related: Article Title' with title linked",
+    "style": "Bold, normal font:type 'Related: Article Title' with title linked",
     "source": "Search Entrepreneur.com for related articles from the last few years",
-    "note": "Contributors should add these while building the story — can link to own past stories if relevant"
+    "note": "Contributors should add these while building the story:can link to own past stories if relevant"
   },
 
   "statistics_usage": {
@@ -262,24 +262,24 @@
       "Content must be 100% original and previously unpublished",
       "Advice-driven articles sharing thoughts, experiences, and problem-solving techniques",
       "No interviews or quotes from non-household name business leaders/experts",
-      "No overly promotional content — articles bolster credibility, not promote",
-      "No paid links or mentions — no editorial coverage in exchange for compensation",
+      "No overly promotional content:articles bolster credibility, not promote",
+      "No paid links or mentions:no editorial coverage in exchange for compensation",
       "No profiles or Q&As of non-household name entrepreneurs",
-      "No ChatGPT/AI-generated text — articles are run through AI detector",
+      "No ChatGPT/AI-generated text:articles are run through AI detector",
       "No plagiarism or copyright infringement",
-      "No photos — leave all imagery to editors",
+      "No photos:leave all imagery to editors",
       "Proofread and spell-check before submitting",
-      "Factual accuracy required — confirm facts using several sources",
+      "Factual accuracy required:confirm facts using several sources",
       "Can repost on own website/blog 10 days after publication with link back to original"
     ],
     "link_policy": [
-      "Only link a few words at a time (not whole phrases — distracting to readers)",
+      "Only link a few words at a time (not whole phrases:distracting to readers)",
       "Cite reputable publications, not blogs (including your own)",
       "Can link to your own blog maximum one time per story (editors may remove if self-promotional)",
       "For statistics, link to the original study, not another article citing the study",
       "When quoting someone, link to the original source",
       "Do NOT link to Forbes, Fast Company, or Inc. (competitors)",
-      "Put in your own hyperlinks — do not put URLs in parentheses or citations below"
+      "Put in your own hyperlinks:do not put URLs in parentheses or citations below"
     ],
     "conflicts_of_interest": [
       "Discouraged from writing about anything with financial relationship",
@@ -291,24 +291,24 @@
 
   "style_rules": {
     "serial_comma": false,
-    "serial_comma_note": "OVERRIDE: Entrepreneur does NOT use serial comma (apples, oranges and bananas) — this overrides the BriteCo brand guide for this publication",
-    "em_dashes": "Em dashes with a space on either side",
+    "serial_comma_note": "OVERRIDE: Entrepreneur does NOT use serial comma (apples, oranges and bananas):this overrides the BriteCo brand guide for this publication",
+    "em_dashes": "Do NOT use em dashes. Use commas, periods, colons, or parentheses instead.",
     "quotation_marks": "Commas and periods go inside end quote marks ALWAYS",
     "double_spaces": "No double spaces after periods",
-    "single_quotes": "Only around quotes within quotes and in headlines/subheads — nowhere else",
+    "single_quotes": "Only around quotes within quotes and in headlines/subheads:nowhere else",
     "formatting": "No bold, no italics (except publication titles), no all-caps words (unless company name is stylized that way)",
-    "subheads": "At least 2 subheads per article — Heading 2 format, lowercase sentence format, no period at end, parallel structure",
-    "paragraphs": "2-3 sentences ideal — use one-sentence paragraphs sparingly",
-    "pronouns": "Be consistent — if you start with 'you', stick with it. Avoid mixing we/I/he/she/you",
-    "pronouns_gender": "Use gender-neutral language — pluralize to use 'they' when possible",
-    "company_pronouns": "A company/organization is 'it' never 'they' — use 'its' not 'their' for possessive",
-    "verb_tense": "Be consistent throughout — present perfect for ongoing/habitual action",
+    "subheads": "At least 2 subheads per article:Heading 2 format, lowercase sentence format, no period at end, parallel structure",
+    "paragraphs": "2-3 sentences ideal:use one-sentence paragraphs sparingly",
+    "pronouns": "Be consistent:if you start with 'you', stick with it. Avoid mixing we/I/he/she/you",
+    "pronouns_gender": "Use gender-neutral language:pluralize to use 'they' when possible",
+    "company_pronouns": "A company/organization is 'it' never 'they':use 'its' not 'their' for possessive",
+    "verb_tense": "Be consistent throughout:present perfect for ongoing/habitual action",
     "numbers": "Under 10 written out (unless percentages). 10+ as numerals (unless starting a sentence). Years always numerals. Use % sign not 'percent'. Use 'more than' not 'over' with numbers.",
     "names": "Full name on first reference (Mark Zuckerberg). Last name only after (Zuckerberg). Never first name only.",
-    "quotes_sourcing": "Check quotes with reliable sources — Brainyquote and unedited blogs are not reliable",
+    "quotes_sourcing": "Check quotes with reliable sources:Brainyquote and unedited blogs are not reliable",
     "jargon": "Spell out abbreviations/acronyms on first reference with abbreviation in parentheses. Avoid 'SMB'.",
     "repetition": "Check for repetition of same words, points, and themes",
-    "evergreen": "Try to keep content useful indefinitely — avoid dating to specific moment in time where possible"
+    "evergreen": "Try to keep content useful indefinitely:avoid dating to specific moment in time where possible"
   },
 
   "avoid": [
@@ -329,11 +329,11 @@
   ],
 
   "sample_headlines": [
-    "The Government Is Taking Up Too Much of Our Focus — Here's Why",
-    "Annual Reviews Are Lazy — Here's How to Actually Learn From Your Work",
-    "58% of College Grads Are Still Job Hunting — Here's How to Attract & Retain Young Job Seekers",
+    "The Government Is Taking Up Too Much of Our Focus. Here's Why",
+    "Annual Reviews Are Lazy. Here's How to Actually Learn From Your Work",
+    "58% of College Grads Are Still Job Hunting. Here's How to Attract and Retain Young Job Seekers",
     "Why Work-Life Balance is a Myth That's Making Entrepreneurs Miserable",
-    "Grace Is a Leadership Strategy — Here's How CEOs Can Use It Effectively",
+    "Grace Is a Leadership Strategy. Here's How CEOs Can Use It Effectively",
     "5 Things to Know Before Launching a New Product",
     "Today's Thought Leaders Are Stuck in An Echo Chamber. Here's How They Can Break Free",
     "How to Hire the Right Employees Who Will Grow With Your Company"
