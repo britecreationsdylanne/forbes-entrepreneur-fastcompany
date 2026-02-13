@@ -119,6 +119,47 @@ def load_brand_guide() -> str:
             return f.read()
     return ''
 
+def load_article_examples(publication: str) -> str:
+    """Load real published article examples for few-shot prompting"""
+    filename = f"{publication.lower().replace(' ', '')}_examples.txt"
+    filepath = CONFIG_DIR / 'article_examples' / filename
+    if filepath.exists():
+        with open(filepath, 'r') as f:
+            return f.read()
+    return ''
+
+def build_article_system_prompt(publication: str, style_guide: dict, brand_guide: str) -> str:
+    """Build the system prompt for article generation (voice, rules, examples)"""
+    examples = load_article_examples(publication)
+
+    system_prompt = f"""You are a ghostwriter for Dustin Lemick, CEO and founder of BriteCo, an insurtech company providing specialty jewelry and watch insurance. You write thought leadership articles for {style_guide.get('publication_full_name', publication)}.
+
+YOUR VOICE: First person as Dustin Lemick. Conversational, confident, grounded in real experience. You sound like a founder talking to peers, not a consultant writing a white paper.
+
+BRAND EDITORIAL RULES (follow these strictly for all writing):
+{brand_guide}
+
+ANTI-AI WRITING RULES (CRITICAL):
+- NEVER use em dashes anywhere. Use commas, periods, colons, or parentheses instead.
+- BANNED WORDS/PHRASES: "delve", "landscape", "navigate" (as metaphor), "leverage", "utilize", "pivotal", "crucial", "moreover", "furthermore", "additionally", "indeed", "multifaceted", "tapestry", "unlock potential", "paradigm", "synergy", "holistic", "seamless", "robust", "it's worth noting", "in today's rapidly evolving/changing", "foster", "facilitate", "commences", "harness", "realm", "cutting-edge", "innovative", "comprehensive", "interesting development", "unique situation", "various factors", "It is important to"
+- NEVER start paragraphs with "In today's..." or "In an era of..."
+- Vary sentence length naturally. Mix short punchy sentences (5-8 words) with medium ones.
+- Use contractions naturally (don't, won't, it's, I've, we're).
+- Write like a real person talking to a colleague, not like an essay. Include occasional informal transitions ("Look,", "Here's the thing:", "The way I see it,").
+- Avoid perfectly parallel structure in lists or consecutive paragraphs. Real writers vary their patterns.
+- Don't overuse transitional phrases. Sometimes just start a new thought.
+- Prefer simple, everyday words over impressive-sounding ones (use "use" not "utilize", "help" not "facilitate", "start" not "commence").
+
+TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}"""
+
+    if examples:
+        system_prompt += f"""
+
+REAL PUBLISHED EXAMPLES (match this voice, specificity, and structure closely):
+{examples}"""
+
+    return system_prompt
+
 def load_topic_archive() -> dict:
     """Load the topic archive"""
     filepath = CONFIG_DIR / 'topic_archive.json'
@@ -473,6 +514,7 @@ def generate_topics():
         response = client.messages.create(
             model="claude-opus-4-5-20251101",
             max_tokens=3000,
+            temperature=0.6,
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -545,6 +587,7 @@ def refine_topic():
         response = client.messages.create(
             model="claude-opus-4-5-20251101",
             max_tokens=1000,
+            temperature=0.5,
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -614,6 +657,7 @@ def generate_variations():
         response = client.messages.create(
             model="claude-opus-4-5-20251101",
             max_tokens=3000,
+            temperature=0.7,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -675,6 +719,7 @@ def generate_talking_points():
         response = client.messages.create(
             model="claude-opus-4-5-20251101",
             max_tokens=1500,
+            temperature=0.6,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -745,6 +790,7 @@ def generate_inspiration():
         response = client.messages.create(
             model="claude-opus-4-5-20251101",
             max_tokens=2000,
+            temperature=0.7,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -821,9 +867,11 @@ def generate_article():
         # Use Claude for article generation
         client = get_anthropic_client()
 
-        # Build the prompt
-        prompt = f"""
-        Write a thought leadership article for {style_guide.get('publication_full_name', publication)}.
+        # Build system prompt (voice, rules, examples)
+        system_prompt = build_article_system_prompt(publication, style_guide, brand_guide)
+
+        # Build user prompt (specific task)
+        prompt = f"""Write a thought leadership article for {style_guide.get('publication_full_name', publication)}.
 
         TOPIC:
         Headline: {topic.get('headline', 'Untitled')}
@@ -832,20 +880,11 @@ def generate_article():
         CEO'S THOUGHTS (from recording transcription):
         {transcription}
 
-        STYLE REQUIREMENTS:
-        - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (this is a strict requirement, do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
-        - Tone: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}
-        - Author voice: First person, as Dustin Lemick, CEO of BriteCo
-
-        BRAND EDITORIAL RULES (follow these strictly for all writing):
-        {brand_guide}
-
-        SUBHEADING FORMAT:
-        {"ALL CAPS" if publication.lower() == 'fastcompany' else "Sentence case phrases"}
-
-        {"KEY TAKEAWAYS REQUIRED: Include 3 bullet points at the top summarizing main insights" if publication.lower() == 'entrepreneur' else ""}
-
-        {"PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
+        REQUIREMENTS:
+        - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (strict, do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
+        - Subheading format: {"ALL CAPS" if publication.lower() == 'fastcompany' else "Sentence case phrases"}
+        {"- KEY TAKEAWAYS REQUIRED: Include 3 bullet points at the top summarizing main insights" if publication.lower() == 'entrepreneur' else ""}
+        {"- PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
 
         STRUCTURE:
         {json.dumps(style_guide.get('article_formats', [{}])[0].get('structure', {}), indent=2)}
@@ -857,24 +896,15 @@ def generate_article():
         SAMPLE SUBHEADINGS FROM THIS PUBLICATION:
         {json.dumps(style_guide.get('subheading_patterns', {}).get('examples', [])[:5], indent=2)}
 
-        ANTI-AI WRITING RULES (CRITICAL, follow these strictly to avoid detectable AI patterns):
-        - NEVER use em dashes (—) anywhere in the article. Use commas, periods, colons, or parentheses instead.
-        - NEVER use these words/phrases: "delve", "landscape", "navigate" (as metaphor), "leverage", "utilize", "pivotal", "crucial", "moreover", "furthermore", "additionally", "indeed", "multifaceted", "tapestry", "unlock potential", "paradigm", "synergy", "holistic", "seamless", "robust", "it's worth noting", "in today's rapidly evolving/changing", "foster", "facilitate", "commences", "harness", "realm"
-        - NEVER start paragraphs with "In today's..." or "In an era of..."
-        - Vary sentence length naturally. Mix short punchy sentences (5-8 words) with medium ones. Avoid a pattern where every sentence is 15-20 words.
-        - Use contractions naturally (don't, won't, it's, I've, we're). Avoid stiff phrasing like "do not" or "it is" unless for emphasis.
-        - Write like a real person talking to a colleague, not like an essay. Include occasional informal transitions ("Look,", "Here's the thing:", "The way I see it,").
-        - Avoid perfectly parallel structure in lists or consecutive paragraphs. Real writers vary their patterns.
-        - Don't overuse transitional phrases. Sometimes just start a new thought.
-        - Use specific, concrete details from the transcription rather than generic business platitudes.
-        - Prefer simple, everyday words over impressive-sounding ones (use "use" not "utilize", "help" not "facilitate", "start" not "commence").
-
+        Use specific, concrete details from the transcription rather than generic business platitudes.
         Write the complete article now. Make it engaging, insightful, and true to the CEO's voice from the transcription.
         """
 
         response = client.messages.create(
             model="claude-opus-4-5-20251101",
             max_tokens=4000,
+            temperature=0.7,
+            system=system_prompt,
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -914,33 +944,21 @@ def rewrite_article():
         brand_guide = load_brand_guide()
         client = get_anthropic_client()
 
-        prompt = f"""
-        Rewrite/improve this {publication} article based on these instructions:
+        # Build system prompt (voice, rules, examples)
+        system_prompt = build_article_system_prompt(publication, style_guide, brand_guide)
+
+        prompt = f"""Rewrite/improve this {publication} article based on these instructions:
 
         INSTRUCTIONS: {instructions}
 
         CURRENT ARTICLE:
         {article}
 
-        STYLE REQUIREMENTS:
+        REQUIREMENTS:
         - Maintain the {publication} style and format
         - Keep subheadings in {"ALL CAPS" if publication.lower() == 'fastcompany' else "sentence case"}
         - Target word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (strict, do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
-
-        BRAND EDITORIAL RULES (follow these strictly):
-        {brand_guide}
-
-        {"PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
-
-        ANTI-AI WRITING RULES (CRITICAL, follow these strictly to avoid detectable AI patterns):
-        - NEVER use em dashes (—) anywhere in the article. Use commas, periods, colons, or parentheses instead.
-        - NEVER use these words/phrases: "delve", "landscape", "navigate" (as metaphor), "leverage", "utilize", "pivotal", "crucial", "moreover", "furthermore", "additionally", "indeed", "multifaceted", "tapestry", "unlock potential", "paradigm", "synergy", "holistic", "seamless", "robust", "it's worth noting", "in today's rapidly evolving/changing", "foster", "facilitate", "commences", "harness", "realm"
-        - NEVER start paragraphs with "In today's..." or "In an era of..."
-        - Vary sentence length naturally. Mix short punchy sentences with medium ones.
-        - Use contractions naturally (don't, won't, it's, I've, we're).
-        - Write like a real person talking to a colleague, not like an essay.
-        - Avoid perfectly parallel structure in lists or consecutive paragraphs.
-        - Prefer simple, everyday words over impressive-sounding ones.
+        {"- PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
 
         Provide the complete rewritten article.
         """
@@ -948,6 +966,8 @@ def rewrite_article():
         response = client.messages.create(
             model="claude-opus-4-5-20251101",
             max_tokens=4000,
+            temperature=0.7,
+            system=system_prompt,
             messages=[
                 {"role": "user", "content": prompt}
             ]
