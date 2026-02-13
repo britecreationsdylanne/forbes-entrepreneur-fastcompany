@@ -1778,6 +1778,13 @@
                 </div>
             </div>
 
+            <!-- ClickUp Status Buttons (shown after final export) -->
+            <div id="clickupStatusBtns" style="display: none; margin-bottom: 20px; text-align: center;">
+                <p style="font-size: 14px; color: var(--gray); margin-bottom: 10px;">ClickUp Status</p>
+                <button class="btn btn-outline" id="markReadyToSubmitBtn" style="margin-right: 8px;">Mark Ready to Submit</button>
+                <button class="btn btn-outline" id="markSubmittedBtn" style="display: none;">Mark Submitted</button>
+            </div>
+
             <div class="btn-group">
                 <button class="btn btn-outline" id="step6Back">← Back to Draft</button>
                 <button class="btn btn-secondary" id="step6Save">Save Draft</button>
@@ -1929,7 +1936,8 @@
             transcription: null,
             audioBlob: null,
             article: null,
-            docUrl: null
+            docUrl: null,
+            clickupTaskId: null
         };
 
         // ===================
@@ -2388,6 +2396,7 @@
                 state.selectedTopic = data.topic;
                 state.transcription = data.transcription;
                 state.article = data.article;
+                state.clickupTaskId = data.clickup_task_id || null;
 
                 // Update step 1 UI
                 if (state.publication) {
@@ -2450,7 +2459,8 @@
                 data: {
                     topic: state.selectedTopic,
                     transcription: state.transcription,
-                    article: state.article
+                    article: state.article,
+                    clickup_task_id: state.clickupTaskId
                 }
             };
 
@@ -3227,6 +3237,20 @@
                 const resultDiv = document.getElementById('draftExportResult');
                 resultDiv.innerHTML = `<div class="alert alert-success">✅ Draft exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
                 resultDiv.style.display = 'block';
+
+                // Create ClickUp task (non-blocking)
+                if (!state.clickupTaskId) {
+                    apiCall('/clickup/create-task', 'POST', {
+                        headline: state.selectedTopic.headline,
+                        publication: state.publication,
+                        doc_url: result.doc_url
+                    }).then(cuResult => {
+                        if (cuResult.success && cuResult.clickup_task_id) {
+                            state.clickupTaskId = cuResult.clickup_task_id;
+                            console.log('[ClickUp] Task created:', cuResult.clickup_task_id);
+                        }
+                    });
+                }
             } else {
                 showAlert(document.getElementById('draftExportResult'),
                     `❌ Error: ${result.error}`, 'error');
@@ -3325,6 +3349,17 @@
                 const resultDiv = document.getElementById('finalExportResult');
                 resultDiv.innerHTML = `<div class="alert alert-success">✅ Final exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
                 resultDiv.style.display = 'block';
+
+                // Update ClickUp to "dl to review" + attach final doc link (non-blocking)
+                if (state.clickupTaskId) {
+                    apiCall('/clickup/update-status', 'POST', {
+                        clickup_task_id: state.clickupTaskId,
+                        status: 'dl to review',
+                        doc_url: result.doc_url
+                    });
+                    // Show the manual ClickUp status buttons
+                    document.getElementById('clickupStatusBtns').style.display = '';
+                }
             } else {
                 showAlert(document.getElementById('finalExportResult'),
                     `❌ Error: ${result.error}`, 'error');
@@ -3379,6 +3414,50 @@
         // Complete Project button
         document.getElementById('completeProjectBtn').addEventListener('click', completeProject);
 
+        // ClickUp status buttons
+        document.getElementById('markReadyToSubmitBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('markReadyToSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+
+            const result = await apiCall('/clickup/update-status', 'POST', {
+                clickup_task_id: state.clickupTaskId,
+                status: 'ready to sumbit'
+            });
+
+            if (result.success) {
+                btn.textContent = 'Ready to Submit ✓';
+                btn.style.background = 'var(--success)';
+                btn.style.color = 'white';
+                btn.style.borderColor = 'var(--success)';
+                document.getElementById('markSubmittedBtn').style.display = '';
+            } else {
+                btn.textContent = 'Mark Ready to Submit';
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('markSubmittedBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('markSubmittedBtn');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+
+            const result = await apiCall('/clickup/update-status', 'POST', {
+                clickup_task_id: state.clickupTaskId,
+                status: 'submited'
+            });
+
+            if (result.success) {
+                btn.textContent = 'Submitted ✓';
+                btn.style.background = 'var(--success)';
+                btn.style.color = 'white';
+                btn.style.borderColor = 'var(--success)';
+            } else {
+                btn.textContent = 'Mark Submitted';
+                btn.disabled = false;
+            }
+        });
+
         // Congrats modal dismiss - full state reset
         document.getElementById('congratsDismissBtn').addEventListener('click', () => {
             document.getElementById('congratsModal').classList.remove('active');
@@ -3394,6 +3473,7 @@
             state.audioBlob = null;
             state.article = null;
             state.docUrl = null;
+            state.clickupTaskId = null;
 
             // Reset step 1
             document.querySelectorAll('.pub-card').forEach(c => c.classList.remove('selected'));
@@ -3435,6 +3515,22 @@
             document.getElementById('finalTitle').value = '';
             document.getElementById('draftExportResult').style.display = 'none';
             document.getElementById('finalExportResult').style.display = 'none';
+
+            // Reset ClickUp buttons
+            document.getElementById('clickupStatusBtns').style.display = 'none';
+            const rtsBtn = document.getElementById('markReadyToSubmitBtn');
+            rtsBtn.textContent = 'Mark Ready to Submit';
+            rtsBtn.disabled = false;
+            rtsBtn.style.background = '';
+            rtsBtn.style.color = '';
+            rtsBtn.style.borderColor = '';
+            const subBtn = document.getElementById('markSubmittedBtn');
+            subBtn.textContent = 'Mark Submitted';
+            subBtn.style.display = 'none';
+            subBtn.disabled = false;
+            subBtn.style.background = '';
+            subBtn.style.color = '';
+            subBtn.style.borderColor = '';
 
             showPanel(1);
             loadDrafts();

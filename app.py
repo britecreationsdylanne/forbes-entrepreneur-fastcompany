@@ -13,6 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from functools import wraps
 
+import requests as http_requests
+
 from flask import Flask, request, jsonify, send_from_directory, redirect, session, url_for, Response
 from flask_cors import CORS
 from authlib.integrations.flask_client import OAuth
@@ -97,6 +99,10 @@ FOLDER_IDS = {
 # Email recipients
 DRAFT_RECIPIENTS = os.environ.get('DRAFT_RECIPIENTS', 'dylanne.crugnale@brite.co').split(',')
 FINAL_RECIPIENTS = os.environ.get('FINAL_RECIPIENTS', 'dylanne.crugnale@brite.co').split(',')
+
+# ClickUp Integration
+CLICKUP_API_TOKEN = os.environ.get('CLICKUP_API_TOKEN')
+CLICKUP_LIST_ID = os.environ.get('CLICKUP_LIST_ID')
 
 # ===================
 # Helper Functions
@@ -1823,6 +1829,114 @@ def send_notification():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ===================
+# ClickUp Integration
+# ===================
+
+def clickup_request(method, path, json_data=None):
+    """Make an authenticated request to ClickUp API v2.
+    Returns (success: bool, data: dict). Never raises."""
+    if not CLICKUP_API_TOKEN:
+        print("[CLICKUP] Skipped: CLICKUP_API_TOKEN not configured")
+        return False, {'error': 'ClickUp not configured'}
+
+    try:
+        url = f"https://api.clickup.com/api/v2{path}"
+        headers = {
+            'Authorization': CLICKUP_API_TOKEN,
+            'Content-Type': 'application/json'
+        }
+        resp = http_requests.request(method, url, headers=headers, json=json_data, timeout=10)
+
+        if resp.status_code in (200, 201):
+            return True, resp.json()
+        else:
+            print(f"[CLICKUP] API error {resp.status_code}: {resp.text[:300]}")
+            return False, {'error': f"ClickUp API returned {resp.status_code}"}
+    except Exception as e:
+        print(f"[CLICKUP] Request failed: {e}")
+        return False, {'error': str(e)}
+
+
+def create_clickup_task(headline, publication, doc_url=None):
+    """Create a ClickUp task for a new article. Returns task_id or None."""
+    if not CLICKUP_LIST_ID:
+        return None
+
+    description = f"Publication: {get_pub_display_name(publication)}\nCreated by CEO Article Generator"
+    if doc_url:
+        description += f"\n\nDraft: {doc_url}"
+
+    task_data = {
+        'name': headline,
+        'status': 'being written',
+        'description': description
+    }
+
+    success, data = clickup_request('POST', f'/list/{CLICKUP_LIST_ID}/task', task_data)
+    if success:
+        task_id = data.get('id')
+        print(f"[CLICKUP] Created task: {task_id} - {headline}")
+        return task_id
+    return None
+
+
+def update_clickup_task_status(task_id, status, doc_url=None):
+    """Update a ClickUp task's status. Optionally append a doc link to description."""
+    if not task_id:
+        print("[CLICKUP] Skipped status update: no task_id")
+        return False
+
+    update_data = {'status': status}
+
+    # If a doc_url is provided, fetch current description and append the link
+    if doc_url:
+        ok, task_data = clickup_request('GET', f'/task/{task_id}')
+        if ok:
+            current_desc = task_data.get('description', '') or ''
+            update_data['description'] = current_desc + f"\n\nFinal: {doc_url}"
+
+    success, _ = clickup_request('PUT', f'/task/{task_id}', update_data)
+    if success:
+        print(f"[CLICKUP] Updated task {task_id} -> '{status}'")
+    return success
+
+
+@app.route('/api/clickup/create-task', methods=['POST'])
+def clickup_create_task():
+    """Create a ClickUp task for a new article"""
+    data = request.json
+    headline = data.get('headline', 'Untitled Article')
+    publication = data.get('publication', '')
+    doc_url = data.get('doc_url')
+
+    task_id = create_clickup_task(headline, publication, doc_url)
+
+    return jsonify({
+        'success': task_id is not None,
+        'clickup_task_id': task_id
+    })
+
+
+@app.route('/api/clickup/update-status', methods=['POST'])
+def clickup_update_status():
+    """Update a ClickUp task's status"""
+    data = request.json
+    task_id = data.get('clickup_task_id')
+    status = data.get('status')
+    doc_url = data.get('doc_url')
+
+    if not task_id:
+        return jsonify({'success': True, 'skipped': True, 'reason': 'No task_id'})
+
+    if not status:
+        return jsonify({'success': False, 'error': 'status required'}), 400
+
+    success = update_clickup_task_status(task_id, status, doc_url)
+
+    return jsonify({'success': success})
+
 
 # ===================
 # Health Check
