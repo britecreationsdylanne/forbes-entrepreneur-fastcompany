@@ -240,7 +240,7 @@ Fast Company articles often include specific tool/platform recommendations:
 | **Subheadings** | ALL CAPS | Sentence case | Sentence case |
 | **Length** | 700-900 | 700-800 | 800-900 |
 | **Tone** | Direct, punchy | Reflective, nuanced | Provocative, challenging |
-| **Key Takeaways** | No | No | Yes (required) |
+| **Key Takeaways** | No | No | No (editors add) |
 | **BriteCo mentions** | 1-3 | 2-4 | 2-5 |
 | **Tool recommendations** | Common | Rare | Sometimes |
 | **Conclusion header** | None | Sometimes | None |

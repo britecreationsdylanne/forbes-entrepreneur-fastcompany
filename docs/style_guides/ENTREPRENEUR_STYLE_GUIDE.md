@@ -19,22 +19,9 @@ Entrepreneur articles are **provocative, practical thought leadership** that cha
 
 ---
 
-## Required Element: Key Takeaways
+## Key Takeaways
 
-**Every Entrepreneur article MUST include a Key Takeaways box at the top.**
-
-**Format:**
-- 3 bullet points
-- Concise, action-oriented statements
-- Summarize main insights
-
-**Examples:**
-```
-Key Takeaways
-• Mistakes are inevitable — it's how you respond that shapes your company's culture.
-• Don't launch without research — timing beats speed every time.
-• Work-life balance is a myth; focus instead on intentional work-life integration.
-```
+**Do NOT include Key Takeaways in drafts — Entrepreneur editors add these on their end.**
 
 ---
 
@@ -45,7 +32,6 @@ Key Takeaways
 
 **Structure:**
 - **Intro:** Contrarian hook challenging common belief
-- **Key Takeaways:** 3 bullets at top
 - **Body:** 3-4 sections with phrase-based subheadings
 - **Conclusion:** Action-oriented wrap-up (no explicit header)
 
@@ -64,7 +50,6 @@ Key Takeaways
 
 **Structure:**
 - **Intro:** Context and why this matters
-- **Key Takeaways:** 3 bullets at top
 - **Body:** Numbered sections (1. 2. 3. 4. 5.)
 - **Conclusion:** Final tip serves as natural wrap
 
@@ -84,7 +69,6 @@ Key Takeaways
 
 **Structure:**
 - **Intro:** Problem statement or observation
-- **Key Takeaways:** 3 bullets at top
 - **Body:** Flowing paragraphs (no section headers)
 - **Conclusion:** Call to action or reflection
 
@@ -323,10 +307,7 @@ Pop culture or current events:
 ```
 HEADLINE: [Contrarian Statement] — Here's [How/Why]
 
-KEY TAKEAWAYS:
-• First key insight (action-oriented)
-• Second key insight (practical)
-• Third key insight (forward-looking)
+(Key Takeaways added by Entrepreneur editors — do not include in draft)
 
 INTRO (2-3 paragraphs):
 - Contrarian hook challenging common belief

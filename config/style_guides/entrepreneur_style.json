@@ -20,10 +20,8 @@
 
   "required_elements": {
     "key_takeaways": {
-      "required": true,
-      "count": 3,
-      "position": "top_of_article",
-      "format": "Bullet points summarizing main insights"
+      "required": false,
+      "note": "Key Takeaways are added by Entrepreneur editors — do NOT include in drafts"
     }
   },
 
@@ -34,7 +32,6 @@
       "word_count": "800-850",
       "structure": {
         "intro": "Contrarian hook challenging common belief",
-        "key_takeaways": "3 bullet points at top",
         "body": "3-4 sections with phrase-based subheadings",
         "conclusion": "Action-oriented wrap-up (no explicit header)"
       },
@@ -47,7 +44,6 @@
       "word_count": "850-900",
       "structure": {
         "intro": "Context and why this matters",
-        "key_takeaways": "3 bullet points at top",
         "body": "Numbered sections (1. 2. 3. 4. 5.)",
         "conclusion": "No explicit conclusion - final tip serves as wrap"
       },
@@ -61,7 +57,6 @@
       "word_count": "850-900",
       "structure": {
         "intro": "Problem statement or observation",
-        "key_takeaways": "3 bullet points at top",
         "body": "Flowing paragraphs with Related: links interspersed",
         "conclusion": "Call to action or reflection"
       },

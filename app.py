@@ -889,7 +889,7 @@ def generate_article():
         REQUIREMENTS:
         - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (strict, do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
         - Subheading format: {"ALL CAPS" if publication.lower() == 'fastcompany' else "Sentence case phrases"}
-        {"- KEY TAKEAWAYS REQUIRED: Include 3 bullet points at the top summarizing main insights" if publication.lower() == 'entrepreneur' else ""}
+        {"- Do NOT include Key Takeaways bullets — Entrepreneur editors add those on their end." if publication.lower() == 'entrepreneur' else ""}
         {"- PUNCTUATION OVERRIDE: Do NOT use the serial comma for this publication (e.g., 'apples, oranges and bananas' NOT 'apples, oranges, and bananas'). Do NOT link to Forbes, Fast Company, or Inc. (competitors)." if publication.lower() == 'entrepreneur' else ""}
 
         STRUCTURE:
