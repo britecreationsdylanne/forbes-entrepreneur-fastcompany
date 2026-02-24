@@ -1942,6 +1942,32 @@ def clickup_update_status():
     return jsonify({'success': success})
 
 
+@app.route('/api/clickup/setup-webhook', methods=['GET'])
+def setup_clickup_webhook():
+    """One-time setup: register ClickUp webhook for task status changes"""
+    if not CLICKUP_API_TOKEN:
+        return jsonify({'success': False, 'error': 'CLICKUP_API_TOKEN not set'}), 400
+
+    # Get workspace/team ID
+    ok, teams_data = clickup_request('GET', '/team')
+    if not ok or not teams_data.get('teams'):
+        return jsonify({'success': False, 'error': 'Could not fetch ClickUp teams', 'detail': teams_data}), 500
+
+    team_id = teams_data['teams'][0]['id']
+
+    # Register webhook pointing back to this app
+    webhook_url = request.host_url.rstrip('/') + '/api/clickup/webhook'
+    ok, data = clickup_request('POST', f'/team/{team_id}/webhook', {
+        'endpoint': webhook_url,
+        'events': ['taskStatusUpdated']
+    })
+
+    if ok:
+        return jsonify({'success': True, 'webhook_id': data.get('webhook', {}).get('id'), 'endpoint': webhook_url})
+    else:
+        return jsonify({'success': False, 'error': data}), 500
+
+
 # ===================
 # Todoist + Published Calendar Helpers
 # ===================
