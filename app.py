@@ -104,6 +104,10 @@ FINAL_RECIPIENTS = os.environ.get('FINAL_RECIPIENTS', 'dylanne.crugnale@brite.co
 CLICKUP_API_TOKEN = os.environ.get('CLICKUP_API_TOKEN')
 CLICKUP_LIST_ID = os.environ.get('CLICKUP_LIST_ID')
 
+# Todoist Integration
+TODOIST_API_TOKEN = os.environ.get('TODOIST_API_TOKEN', '')
+TODOIST_PROJECT_ID = os.environ.get('TODOIST_PROJECT_ID', '')
+
 # ===================
 # Helper Functions
 # ===================
@@ -1869,7 +1873,7 @@ def create_clickup_task(headline, publication, doc_url=None):
         description += f"\n\nDraft: {doc_url}"
 
     task_data = {
-        'name': headline,
+        'name': f"[{get_pub_display_name(publication)}] {headline}",
         'status': 'being written',
         'description': description
     }
@@ -1936,6 +1940,130 @@ def clickup_update_status():
     success = update_clickup_task_status(task_id, status, doc_url)
 
     return jsonify({'success': success})
+
+
+# ===================
+# Todoist + Published Calendar Helpers
+# ===================
+
+def find_article_by_clickup_task_id(task_id):
+    """Search completed/ then drafts/ in GCS for article with matching clickup_task_id"""
+    if not gcs_client or not task_id:
+        return None
+    bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+    for prefix in ['completed/', 'drafts/']:
+        for blob in bucket.list_blobs(prefix=prefix):
+            try:
+                article = json.loads(blob.download_as_text())
+                if article.get('clickup_task_id') == task_id:
+                    return article
+            except Exception:
+                continue
+    return None
+
+
+def create_todoist_task(content):
+    """Create a task in Todoist"""
+    if not TODOIST_API_TOKEN:
+        print("[TODOIST] Skipped: no API token configured")
+        return
+    payload = {'content': content}
+    if TODOIST_PROJECT_ID:
+        payload['project_id'] = TODOIST_PROJECT_ID
+    resp = requests.post(
+        'https://api.todoist.com/rest/v2/tasks',
+        headers={'Authorization': f'Bearer {TODOIST_API_TOKEN}', 'Content-Type': 'application/json'},
+        json=payload
+    )
+    if resp.ok:
+        print(f"[TODOIST] Created task: {content}")
+    else:
+        print(f"[TODOIST] Error {resp.status_code}: {resp.text[:200]}")
+
+
+def append_published_entry(entry):
+    """Append entry to published/entries.json in GCS"""
+    if not gcs_client:
+        return
+    bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+    blob = bucket.blob('published/entries.json')
+    entries = []
+    if blob.exists():
+        try:
+            entries = json.loads(blob.download_as_text())
+        except Exception:
+            entries = []
+    entries.append(entry)
+    blob.upload_from_string(json.dumps(entries, indent=2), content_type='application/json')
+    print(f"[PUBLISHED] Added entry: {entry.get('title', 'Untitled')}")
+
+
+# ===================
+# ClickUp Webhook
+# ===================
+
+@app.route('/api/clickup/webhook', methods=['POST'])
+def clickup_webhook():
+    """Receive ClickUp task status change webhooks"""
+    data = request.json or {}
+
+    if data.get('event') != 'taskStatusUpdated':
+        return jsonify({'ok': True})
+
+    # Extract new status from history_items
+    new_status = None
+    for item in data.get('history_items', []):
+        if item.get('field') == 'status':
+            new_status = (item.get('after', {}).get('status') or '').lower()
+            break
+
+    if not new_status:
+        return jsonify({'ok': True})
+
+    task_id = data.get('task_id')
+    print(f"[CLICKUP WEBHOOK] task_id={task_id} new_status={new_status}")
+
+    if new_status == 'submited':
+        article = find_article_by_clickup_task_id(task_id)
+        pub_name = get_pub_display_name(article.get('publication', '')) if article else 'Article'
+        create_todoist_task(f"{pub_name} article submitted - time to record")
+
+    elif new_status == 'published':
+        article = find_article_by_clickup_task_id(task_id)
+        if article:
+            entry = {
+                'draft_id': article.get('id'),
+                'title': article.get('data', {}).get('topic', {}).get('headline', 'Untitled'),
+                'publication': article.get('publication'),
+                'published_at': datetime.now().isoformat(),
+                'doc_url': article.get('data', {}).get('doc_url')
+            }
+            append_published_entry(entry)
+        else:
+            print(f"[CLICKUP WEBHOOK] No article found for task_id={task_id}")
+
+    return jsonify({'ok': True})
+
+
+# ===================
+# Published Calendar
+# ===================
+
+@app.route('/api/published/list', methods=['GET'])
+def list_published():
+    """List published articles from GCS"""
+    if not gcs_client:
+        return jsonify({'published': []})
+    bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+    blob = bucket.blob('published/entries.json')
+    if not blob.exists():
+        return jsonify({'published': []})
+    try:
+        entries = json.loads(blob.download_as_text())
+        entries.sort(key=lambda x: x.get('published_at', ''), reverse=True)
+        return jsonify({'published': entries})
+    except Exception as e:
+        return jsonify({'published': [], 'error': str(e)})
 
 
 # ===================

@@ -1779,13 +1779,6 @@
                 </div>
             </div>
 
-            <!-- ClickUp Status Buttons (shown after final export) -->
-            <div id="clickupStatusBtns" style="display: none; margin-bottom: 20px; text-align: center;">
-                <p style="font-size: 14px; color: var(--gray); margin-bottom: 10px;">ClickUp Status</p>
-                <button class="btn btn-outline" id="markReadyToSubmitBtn" style="margin-right: 8px;">Mark Ready to Submit</button>
-                <button class="btn btn-outline" id="markSubmittedBtn" style="display: none;">Mark Submitted</button>
-            </div>
-
             <div class="btn-group">
                 <button class="btn btn-outline" id="step6Back">← Back to Draft</button>
                 <button class="btn btn-secondary" id="step6Save">Save Draft</button>
@@ -1816,6 +1809,15 @@
                 <button class="pub-filter-tab" data-filter="fastcompany">Fast Company</button>
             </div>
             <div id="completedList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
+        </div>
+    </div>
+
+    <!-- Published Calendar Section -->
+    <div id="publishedCalendarSection" style="padding: 60px 20px; background: #1E3A4A;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <h2 style="font-size: 36px; color: white; text-align: center; margin-bottom: 10px;">Published Calendar</h2>
+            <p style="color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 30px;">Articles marked Published in ClickUp</p>
+            <div id="publishedList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
         </div>
     </div>
 
@@ -2342,6 +2344,23 @@
                 `).join('');
             } else {
                 completedList.innerHTML = '<div class="no-completed-message">No completed articles yet.</div>';
+            }
+        }
+
+        async function loadPublishedCalendar() {
+            const result = await apiCall('/published/list');
+            const publishedList = document.getElementById('publishedList');
+            if (result.published && result.published.length > 0) {
+                publishedList.innerHTML = result.published.map(entry => `
+                    <div class="completed-card">
+                        <h5>${entry.title || 'Untitled Article'}</h5>
+                        <div class="completed-pub">${formatPubName(entry.publication)}</div>
+                        <span class="completed-badge">Published ${formatDate(entry.published_at)}</span>
+                        ${entry.doc_url ? `<div style="margin-top: 10px;"><a href="${entry.doc_url}" target="_blank" style="color: #7EC8C8; font-size: 13px; font-weight: 600;">Open Google Doc →</a></div>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                publishedList.innerHTML = '<div class="no-completed-message" style="color: rgba(255,255,255,0.6);">No published articles yet.</div>';
             }
         }
 
@@ -3351,16 +3370,7 @@
                 resultDiv.innerHTML = `<div class="alert alert-success">✅ Final exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
                 resultDiv.style.display = 'block';
 
-                // Update ClickUp to "dl to review" + attach final doc link (non-blocking)
-                if (state.clickupTaskId) {
-                    apiCall('/clickup/update-status', 'POST', {
-                        clickup_task_id: state.clickupTaskId,
-                        status: 'dl to review',
-                        doc_url: result.doc_url
-                    });
-                    // Show the manual ClickUp status buttons
-                    document.getElementById('clickupStatusBtns').style.display = '';
-                }
+
             } else {
                 showAlert(document.getElementById('finalExportResult'),
                     `❌ Error: ${result.error}`, 'error');
@@ -3414,50 +3424,6 @@
 
         // Complete Project button
         document.getElementById('completeProjectBtn').addEventListener('click', completeProject);
-
-        // ClickUp status buttons
-        document.getElementById('markReadyToSubmitBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('markReadyToSubmitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Updating...';
-
-            const result = await apiCall('/clickup/update-status', 'POST', {
-                clickup_task_id: state.clickupTaskId,
-                status: 'ready to sumbit'
-            });
-
-            if (result.success) {
-                btn.textContent = 'Ready to Submit ✓';
-                btn.style.background = 'var(--success)';
-                btn.style.color = 'white';
-                btn.style.borderColor = 'var(--success)';
-                document.getElementById('markSubmittedBtn').style.display = '';
-            } else {
-                btn.textContent = 'Mark Ready to Submit';
-                btn.disabled = false;
-            }
-        });
-
-        document.getElementById('markSubmittedBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('markSubmittedBtn');
-            btn.disabled = true;
-            btn.textContent = 'Updating...';
-
-            const result = await apiCall('/clickup/update-status', 'POST', {
-                clickup_task_id: state.clickupTaskId,
-                status: 'submited'
-            });
-
-            if (result.success) {
-                btn.textContent = 'Submitted ✓';
-                btn.style.background = 'var(--success)';
-                btn.style.color = 'white';
-                btn.style.borderColor = 'var(--success)';
-            } else {
-                btn.textContent = 'Mark Submitted';
-                btn.disabled = false;
-            }
-        });
 
         // Congrats modal dismiss - full state reset
         document.getElementById('congratsDismissBtn').addEventListener('click', () => {
@@ -3574,6 +3540,7 @@
         // ===================
         loadDrafts();
         loadCompletedArticles();
+        loadPublishedCalendar();
 
         // Initialize recipient lists
         renderRecipients('draft');
