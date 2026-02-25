@@ -2007,6 +2007,25 @@ def create_todoist_task(content):
         print(f"[TODOIST] Error {resp.status_code}: {resp.text[:200]}")
 
 
+@app.route('/api/todoist/test', methods=['GET'])
+def todoist_test():
+    """Send a test task to Todoist to verify the integration works"""
+    if not TODOIST_API_TOKEN:
+        return jsonify({'success': False, 'error': 'TODOIST_API_TOKEN not set'})
+    payload = {'content': 'TEST - Todoist integration working!'}
+    if TODOIST_PROJECT_ID:
+        payload['project_id'] = TODOIST_PROJECT_ID
+    resp = requests.post(
+        'https://api.todoist.com/api/v1/tasks',
+        headers={'Authorization': f'Bearer {TODOIST_API_TOKEN}', 'Content-Type': 'application/json'},
+        json=payload
+    )
+    if resp.ok:
+        return jsonify({'success': True, 'task': resp.json()})
+    else:
+        return jsonify({'success': False, 'status': resp.status_code, 'error': resp.text[:500]})
+
+
 def get_clickup_task_info(task_id):
     """Fetch task details from ClickUp API (title, publication custom field)"""
     ok, data = clickup_request('GET', f'/task/{task_id}')
