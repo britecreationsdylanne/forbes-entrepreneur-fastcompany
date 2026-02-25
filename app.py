@@ -2007,6 +2007,38 @@ def create_todoist_task(content):
         print(f"[TODOIST] Error {resp.status_code}: {resp.text[:200]}")
 
 
+def get_clickup_task_info(task_id):
+    """Fetch task details from ClickUp API (title, publication custom field)"""
+    ok, data = clickup_request('GET', f'/task/{task_id}')
+    if not ok:
+        return None, None
+
+    title = data.get('name', 'Untitled')
+    publication = None
+
+    # Check custom fields for "Publication"
+    for field in data.get('custom_fields', []):
+        if field.get('name', '').lower() == 'publication':
+            # Dropdown/label type field
+            type_config = field.get('type_config', {})
+            options = {opt['orderindex']: opt['name'] for opt in type_config.get('options', [])}
+            value = field.get('value')
+            if isinstance(value, int):
+                publication = options.get(value)
+            elif isinstance(value, str):
+                publication = value
+            break
+
+    # Fallback: parse pub name from title prefix like "[Forbes] headline"
+    if not publication and title.startswith('['):
+        bracket_end = title.find(']')
+        if bracket_end > 0:
+            publication = title[1:bracket_end]
+
+    print(f"[CLICKUP] Task info: title={title}, publication={publication}")
+    return title, publication
+
+
 def append_published_entry(entry):
     """Append entry to published/entries.json in GCS"""
     if not gcs_client:
@@ -2049,24 +2081,35 @@ def clickup_webhook():
     task_id = data.get('task_id')
     print(f"[CLICKUP WEBHOOK] task_id={task_id} new_status={new_status}")
 
+    # Try GCS first, then fall back to ClickUp API for task details
+    article = find_article_by_clickup_task_id(task_id)
+
     if new_status == 'submited':
-        article = find_article_by_clickup_task_id(task_id)
-        pub_name = get_pub_display_name(article.get('publication', '')) if article else 'Article'
+        if article:
+            pub_name = get_pub_display_name(article.get('publication', ''))
+        else:
+            _, pub = get_clickup_task_info(task_id)
+            pub_name = pub or 'Article'
         create_todoist_task(f"{pub_name} article submitted - time to record")
 
     elif new_status == 'published':
-        article = find_article_by_clickup_task_id(task_id)
         if article:
-            entry = {
-                'draft_id': article.get('id'),
-                'title': article.get('data', {}).get('topic', {}).get('headline', 'Untitled'),
-                'publication': article.get('publication'),
-                'published_at': datetime.now().isoformat(),
-                'doc_url': article.get('data', {}).get('doc_url')
-            }
-            append_published_entry(entry)
+            title = article.get('data', {}).get('topic', {}).get('headline', 'Untitled')
+            publication = article.get('publication')
+            doc_url = article.get('data', {}).get('doc_url')
         else:
-            print(f"[CLICKUP WEBHOOK] No article found for task_id={task_id}")
+            title, publication = get_clickup_task_info(task_id)
+            title = title or 'Untitled'
+            doc_url = None
+
+        entry = {
+            'draft_id': article.get('id') if article else None,
+            'title': title,
+            'publication': publication,
+            'published_at': datetime.now().isoformat(),
+            'doc_url': doc_url
+        }
+        append_published_entry(entry)
 
     return jsonify({'ok': True})
 
