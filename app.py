@@ -2021,18 +2021,25 @@ def todoist_test():
                 'env_keys_with_todoist': [k for k in os.environ.keys() if 'todoist' in k.lower()]
             }
         })
-    payload = {'content': 'TEST - Todoist integration working!'}
-    if TODOIST_PROJECT_ID:
-        payload['project_id'] = TODOIST_PROJECT_ID
-    resp = requests.post(
-        'https://api.todoist.com/api/v1/tasks',
-        headers={'Authorization': f'Bearer {TODOIST_API_TOKEN}', 'Content-Type': 'application/json'},
-        json=payload
-    )
-    if resp.ok:
-        return jsonify({'success': True, 'task': resp.json()})
-    else:
-        return jsonify({'success': False, 'status': resp.status_code, 'error': resp.text[:500]})
+    try:
+        payload = {'content': 'TEST - Todoist integration working!'}
+        if TODOIST_PROJECT_ID:
+            payload['project_id'] = TODOIST_PROJECT_ID
+        resp = requests.post(
+            'https://api.todoist.com/api/v1/tasks',
+            headers={'Authorization': f'Bearer {TODOIST_API_TOKEN}', 'Content-Type': 'application/json'},
+            json=payload
+        )
+        if resp.ok:
+            try:
+                task_data = resp.json()
+            except Exception:
+                task_data = resp.text[:300]
+            return jsonify({'success': True, 'task': task_data})
+        else:
+            return jsonify({'success': False, 'status': resp.status_code, 'error': resp.text[:500]})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'token_len': len(TODOIST_API_TOKEN), 'project_id': TODOIST_PROJECT_ID})
 
 
 def get_clickup_task_info(task_id):
