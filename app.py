@@ -2087,10 +2087,15 @@ def clickup_webhook():
     if new_status == 'submited':
         if article:
             pub_name = get_pub_display_name(article.get('publication', ''))
+            title = article.get('data', {}).get('topic', {}).get('headline', '')
         else:
-            _, pub = get_clickup_task_info(task_id)
+            title, pub = get_clickup_task_info(task_id)
             pub_name = pub or 'Article'
-        create_todoist_task(f"{pub_name} article submitted - time to record")
+            title = title or ''
+            # Strip [Pub Name] prefix from title if present
+            if title.startswith('[') and ']' in title:
+                title = title[title.index(']') + 1:].strip()
+        create_todoist_task(f"{pub_name} article submitted ({title}) - time to record")
 
     elif new_status == 'published':
         if article:
