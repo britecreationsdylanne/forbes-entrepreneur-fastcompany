@@ -2010,8 +2010,17 @@ def create_todoist_task(content):
 @app.route('/api/todoist/test', methods=['GET'])
 def todoist_test():
     """Send a test task to Todoist to verify the integration works"""
-    if not TODOIST_API_TOKEN:
-        return jsonify({'success': False, 'error': 'TODOIST_API_TOKEN not set'})
+    token_live = os.environ.get('_TODOIST_API_TOKEN', '')
+    if not token_live and not TODOIST_API_TOKEN:
+        return jsonify({
+            'success': False,
+            'error': 'TODOIST_API_TOKEN not set',
+            'debug': {
+                'module_var_set': bool(TODOIST_API_TOKEN),
+                'env_var_set': bool(token_live),
+                'env_keys_with_todoist': [k for k in os.environ.keys() if 'todoist' in k.lower()]
+            }
+        })
     payload = {'content': 'TEST - Todoist integration working!'}
     if TODOIST_PROJECT_ID:
         payload['project_id'] = TODOIST_PROJECT_ID
