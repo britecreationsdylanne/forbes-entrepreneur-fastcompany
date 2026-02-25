@@ -2025,7 +2025,7 @@ def todoist_test():
         payload = {'content': 'TEST - Todoist integration working!'}
         if TODOIST_PROJECT_ID:
             payload['project_id'] = TODOIST_PROJECT_ID
-        resp = requests.post(
+        resp = http_requests.post(
             'https://api.todoist.com/api/v1/tasks',
             headers={'Authorization': f'Bearer {TODOIST_API_TOKEN}', 'Content-Type': 'application/json'},
             json=payload
