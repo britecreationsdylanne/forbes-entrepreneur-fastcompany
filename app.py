@@ -105,8 +105,8 @@ CLICKUP_API_TOKEN = os.environ.get('CLICKUP_API_TOKEN')
 CLICKUP_LIST_ID = os.environ.get('CLICKUP_LIST_ID')
 
 # Todoist Integration
-TODOIST_API_TOKEN = os.environ.get('_TODOIST_API_TOKEN', '')
-TODOIST_PROJECT_ID = os.environ.get('_TODOIST_PROJECT_ID', '')
+TODOIST_API_TOKEN = os.environ.get('TODOIST_API_TOKEN', '')
+TODOIST_PROJECT_ID = os.environ.get('TODOIST_PROJECT_ID', '')
 
 # ===================
 # Helper Functions
