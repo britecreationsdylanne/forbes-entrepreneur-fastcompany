@@ -2132,6 +2132,18 @@ def clickup_webhook():
                 title = title[title.index(']') + 1:].strip()
         create_todoist_task(f"{pub_name} article submitted ({title}) - time to record")
 
+    elif new_status == 'not submitting':
+        if article:
+            pub_name = get_pub_display_name(article.get('publication', ''))
+            title = article.get('data', {}).get('topic', {}).get('headline', '')
+        else:
+            title, pub = get_clickup_task_info(task_id)
+            pub_name = pub or 'Article'
+            title = title or ''
+            if title.startswith('[') and ']' in title:
+                title = title[title.index(']') + 1:].strip()
+        create_todoist_task(f"{pub_name} article not submitting ({title}) - time to record")
+
     elif new_status == 'published':
         if article:
             title = article.get('data', {}).get('topic', {}).get('headline', 'Untitled')
