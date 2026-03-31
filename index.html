@@ -40,6 +40,7 @@
             min-height: 100vh;
             color: var(--dark);
             line-height: 1.6;
+            overflow-x: hidden;
         }
 
         /* Top accent bar */
@@ -1371,6 +1372,14 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .panel {
+                padding: 16px;
+            }
+
             .publication-cards {
                 grid-template-columns: 1fr;
             }
@@ -1386,6 +1395,43 @@
 
             .export-options {
                 grid-template-columns: 1fr;
+            }
+
+            .btn-group {
+                flex-wrap: wrap;
+            }
+
+            .btn-group .btn {
+                flex: 1 1 auto;
+                min-width: 0;
+                font-size: 0.85rem;
+                padding: 10px 12px;
+            }
+
+            .topic-card {
+                padding: 14px;
+                overflow: hidden;
+            }
+
+            .topic-card h4 {
+                margin-right: 60px;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            .topic-card p {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            .main-content {
+                border-radius: 8px;
+                overflow-x: hidden;
+            }
+
+            #step2 > div {
+                flex-direction: column;
+                gap: 15px;
             }
         }
     </style>
