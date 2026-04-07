@@ -1874,7 +1874,7 @@ def create_clickup_task(headline, publication, doc_url=None):
 
     task_data = {
         'name': f"[{get_pub_display_name(publication)}] {headline}",
-        'status': 'being written',
+        'status': 'proofread',
         'description': description
     }
 
