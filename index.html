@@ -2013,13 +2013,10 @@
         let savedTopics = [];
 
         async function loadSavedTopics() {
-            if (!state.publication) {
-                savedTopics = [];
-                updateSavedTopicsCount();
-                return;
-            }
+            // Saved topics persist across publications — load all regardless of current pub
+            const pubForUrl = state.publication || 'all';
             try {
-                const result = await apiCall(`/saved-topics/${state.publication}`);
+                const result = await apiCall(`/saved-topics/${pubForUrl}`);
                 if (result.success && result.topics) {
                     savedTopics = result.topics;
                 }
@@ -2059,8 +2056,13 @@
         }
 
         async function removeSavedTopic(index) {
+            const topic = savedTopics[index];
+            if (!topic) return;
             try {
-                const result = await apiCall(`/saved-topics/${state.publication}/${index}`, 'DELETE');
+                const result = await apiCall('/saved-topics/delete-by-headline', 'POST', {
+                    publication: topic.publication || state.publication,
+                    headline: topic.headline
+                });
                 if (result.success) {
                     savedTopics.splice(index, 1);
                     updateSavedTopicsCount();
@@ -2095,18 +2097,24 @@
 
         function renderSavedTopics() {
             const container = document.getElementById('savedTopicsList2');
-            const pubName = state.publication ? state.publication.charAt(0).toUpperCase() + state.publication.slice(1) : '';
 
             if (savedTopics.length === 0) {
-                container.innerHTML = `<p style="color: #6b7280; font-size: 14px;">No saved ${pubName} topics yet. Click 📌 on any topic to save it for later.</p>`;
+                container.innerHTML = `<p style="color: #6b7280; font-size: 14px;">No saved topics yet. Click 📌 on any topic to save it for later.</p>`;
                 return;
             }
+
+            const pubLabel = (p) => {
+                if (!p) return '';
+                const map = { forbes: 'Forbes', entrepreneur: 'Entrepreneur', fastcompany: 'Fast Company' };
+                return map[p.toLowerCase()] || (p.charAt(0).toUpperCase() + p.slice(1));
+            };
 
             container.innerHTML = savedTopics.map((topic, i) => `
                 <div class="saved-topic-item">
                     <div class="topic-info">
                         <div class="topic-headline">${topic.headline}</div>
                         <div class="topic-meta">
+                            ${topic.publication ? '<span style="display:inline-block;background:#e0f2f1;color:#008181;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;margin-right:6px;">' + pubLabel(topic.publication) + '</span>' : ''}
                             ${topic.angle ? topic.angle.substring(0, 80) + (topic.angle.length > 80 ? '...' : '') : ''}
                             ${topic.month ? ' • ' + topic.month : ''}
                             ${topic.savedBy ? ' • ' + topic.savedBy.split('@')[0] : ''}

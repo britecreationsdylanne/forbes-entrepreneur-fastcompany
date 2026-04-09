@@ -1252,7 +1252,12 @@ def log_topic_choice():
 
 @app.route('/api/saved-topics/<publication>', methods=['GET'])
 def list_saved_topics(publication):
-    """List saved topics for a specific publication from GCS"""
+    """List saved topics across ALL publications from GCS.
+
+    The <publication> path arg is kept for backwards compatibility but ignored;
+    saved topics now persist across publications so a topic saved under Forbes
+    is visible from FastCo and Entrepreneur as well.
+    """
     if not gcs_client:
         return jsonify({'success': True, 'topics': []})
 
@@ -1264,9 +1269,16 @@ def list_saved_topics(publication):
             return jsonify({'success': True, 'topics': []})
 
         all_topics = json.loads(blob.download_as_text())
-        # Return topics for specific publication
-        pub_topics = all_topics.get(publication.lower(), [])
-        return jsonify({'success': True, 'topics': pub_topics})
+
+        # Flatten across publications, ensuring each topic has its publication tagged
+        flat = []
+        for pub_key, topics in all_topics.items():
+            for t in topics:
+                if not t.get('publication'):
+                    t['publication'] = pub_key
+                flat.append(t)
+
+        return jsonify({'success': True, 'topics': flat})
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e), 'topics': []})
@@ -1333,6 +1345,35 @@ def delete_saved_topic(publication, index):
 
         if pub_key in all_topics and 0 <= index < len(all_topics[pub_key]):
             all_topics[pub_key].pop(index)
+            blob.upload_from_string(json.dumps(all_topics, indent=2), content_type='application/json')
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/saved-topics/delete-by-headline', methods=['POST'])
+def delete_saved_topic_by_headline():
+    """Delete a saved topic by publication + headline (works regardless of index)."""
+    if not gcs_client:
+        return jsonify({'success': True})
+
+    try:
+        data = request.json or {}
+        pub_key = (data.get('publication') or '').lower()
+        headline = data.get('headline')
+        if not pub_key or not headline:
+            return jsonify({'success': False, 'error': 'publication and headline required'}), 400
+
+        bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(SAVED_TOPICS_BLOB)
+
+        if not blob.exists():
+            return jsonify({'success': True})
+
+        all_topics = json.loads(blob.download_as_text())
+        if pub_key in all_topics:
+            all_topics[pub_key] = [t for t in all_topics[pub_key] if t.get('headline') != headline]
             blob.upload_from_string(json.dumps(all_topics, indent=2), content_type='application/json')
 
         return jsonify({'success': True})
