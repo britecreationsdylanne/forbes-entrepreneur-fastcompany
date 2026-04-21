@@ -3340,8 +3340,10 @@
                         if (cuResult.success && cuResult.clickup_task_id) {
                             state.clickupTaskId = cuResult.clickup_task_id;
                             console.log('[ClickUp] Task created:', cuResult.clickup_task_id);
+                            // Persist to draft so we don't duplicate if user leaves and returns
+                            saveDraft();
                         }
-                    });
+                    }).catch(err => console.error('[ClickUp] Task creation failed:', err));
                 }
             } else {
                 showAlert(document.getElementById('draftExportResult'),
@@ -3452,6 +3454,8 @@
                         if (cuResult.success && cuResult.clickup_task_id) {
                             state.clickupTaskId = cuResult.clickup_task_id;
                             console.log('[ClickUp] Task created from final export:', cuResult.clickup_task_id);
+                            // Persist to draft so we don't duplicate if user leaves and returns
+                            saveDraft();
                         }
                     }).catch(err => console.error('[ClickUp] Task creation failed:', err));
                 }
