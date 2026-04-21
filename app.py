@@ -129,6 +129,14 @@ def load_brand_guide() -> str:
             return f.read()
     return ''
 
+def load_voice_dna() -> str:
+    """Load Dustin's Voice DNA guide (lowest-priority background voice reference)"""
+    filepath = STYLE_GUIDES_DIR.parent / 'voice_dna.md'
+    if filepath.exists():
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return f.read()
+    return ''
+
 def load_article_examples(publication: str) -> str:
     """Load real published article examples for few-shot prompting"""
     filename = f"{publication.lower().replace(' ', '')}_examples.txt"
@@ -141,6 +149,7 @@ def load_article_examples(publication: str) -> str:
 def build_article_system_prompt(publication: str, style_guide: dict, brand_guide: str) -> str:
     """Build the system prompt for article generation (voice, rules, examples)"""
     examples = load_article_examples(publication)
+    voice_dna = load_voice_dna()
 
     system_prompt = f"""You are a ghostwriter for Dustin Lemick, CEO and founder of BriteCo, an insurtech company providing specialty jewelry and watch insurance. You write thought leadership articles for {style_guide.get('publication_full_name', publication)}.
 
@@ -167,6 +176,26 @@ TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}"
 
 REAL PUBLISHED EXAMPLES (match this voice, specificity, and structure closely):
 {examples}"""
+
+    if voice_dna:
+        system_prompt += f"""
+
+---
+
+VOICE DNA REFERENCE (lowest priority, background voice guide):
+
+The reference below describes Dustin's general writing voice and patterns to avoid sounding like AI. Treat it as a taste guide, NOT a hard ruleset.
+
+PRIORITY ORDER (higher trumps lower):
+1. The publication's style guide and tone (ABOVE)
+2. The BriteCo brand editorial rules (ABOVE)
+3. The ANTI-AI WRITING RULES (ABOVE)
+4. The real published examples (ABOVE)
+5. This Voice DNA reference (BELOW — apply only when nothing above conflicts)
+
+If anything in this Voice DNA contradicts a rule above, follow the rule above. Use this as background texture, not as a checklist.
+
+{voice_dna}"""
 
     return system_prompt
 
