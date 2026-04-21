@@ -155,11 +155,26 @@ def build_article_system_prompt(publication: str, style_guide: dict, brand_guide
 
 YOUR VOICE: First person as Dustin Lemick. Conversational, confident, grounded in real experience. You sound like a founder talking to peers, not a consultant writing a white paper.
 
+TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}"""
+
+    if examples:
+        system_prompt += f"""
+
+REAL PUBLISHED EXAMPLES (PRIMARY REFERENCE FOR TONE, VOICE, AND STRUCTURE — match these closely):
+
+These are real articles that have been published. They are the ground truth for how Dustin sounds in this publication. Study the rhythm, sentence length variety, specificity, and how he opens and closes pieces. Match this voice.
+
+NOTE: If any example contains em dashes, banned words, or AI-style phrases, DO NOT mimic those specific tokens — the hard rules below override any stylistic choices in the examples. The examples teach voice and structure, not punctuation or vocabulary.
+
+{examples}"""
+
+    system_prompt += f"""
+
 BRAND EDITORIAL RULES (follow these strictly for all writing):
 {brand_guide}
 
-ANTI-AI WRITING RULES (CRITICAL):
-- NEVER use em dashes anywhere. Use commas, periods, colons, or parentheses instead.
+ANTI-AI WRITING RULES (HARD BANS — these override EVERYTHING, including the examples above):
+- NEVER use em dashes anywhere. Use commas, periods, colons, or parentheses instead. Even if an example above uses them, you must not.
 - BANNED WORDS/PHRASES: "delve", "landscape", "navigate" (as metaphor), "leverage", "utilize", "pivotal", "crucial", "moreover", "furthermore", "additionally", "indeed", "multifaceted", "tapestry", "unlock potential", "paradigm", "synergy", "holistic", "seamless", "robust", "it's worth noting", "in today's rapidly evolving/changing", "foster", "facilitate", "commences", "harness", "realm", "cutting-edge", "innovative", "comprehensive", "interesting development", "unique situation", "various factors", "It is important to"
 - NEVER start paragraphs with "In today's..." or "In an era of..."
 - Vary sentence length naturally. Mix short punchy sentences (5-8 words) with medium ones.
@@ -167,15 +182,7 @@ ANTI-AI WRITING RULES (CRITICAL):
 - Write like a real person talking to a colleague, not like an essay. Include occasional informal transitions ("Look,", "Here's the thing:", "The way I see it,").
 - Avoid perfectly parallel structure in lists or consecutive paragraphs. Real writers vary their patterns.
 - Don't overuse transitional phrases. Sometimes just start a new thought.
-- Prefer simple, everyday words over impressive-sounding ones (use "use" not "utilize", "help" not "facilitate", "start" not "commence").
-
-TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}"""
-
-    if examples:
-        system_prompt += f"""
-
-REAL PUBLISHED EXAMPLES (match this voice, specificity, and structure closely):
-{examples}"""
+- Prefer simple, everyday words over impressive-sounding ones (use "use" not "utilize", "help" not "facilitate", "start" not "commence")."""
 
     if voice_dna:
         system_prompt += f"""
@@ -188,9 +195,9 @@ The reference below describes Dustin's general writing voice and patterns to avo
 
 PRIORITY ORDER (higher trumps lower):
 1. The publication's style guide and tone (ABOVE)
-2. The BriteCo brand editorial rules (ABOVE)
-3. The ANTI-AI WRITING RULES (ABOVE)
-4. The real published examples (ABOVE)
+2. The real published examples (ABOVE — primary reference for voice, tone, structure)
+3. The BriteCo brand editorial rules (ABOVE)
+4. The ANTI-AI WRITING RULES (ABOVE — hard bans that override examples)
 5. This Voice DNA reference (BELOW — apply only when nothing above conflicts)
 
 If anything in this Voice DNA contradicts a rule above, follow the rule above. Use this as background texture, not as a checklist.
