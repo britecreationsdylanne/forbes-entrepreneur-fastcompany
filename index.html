@@ -1768,7 +1768,7 @@
                 <div class="export-card">
                     <h4>📄 Export to Google Docs</h4>
                     <p>Save to the Drafts folder for team editing</p>
-                    <button class="btn btn-primary" id="exportDraftBtn">Export Draft</button>
+                    <button class="btn btn-primary" id="exportDraftBtn">Export &amp; Create ClickUp Task</button>
                     <div id="draftExportResult" style="display: none; margin-top: 12px;"></div>
                 </div>
                 <div class="export-card" style="text-align: left;">
@@ -3322,7 +3322,7 @@
             });
 
             btn.disabled = false;
-            btn.textContent = 'Export Draft';
+            btn.textContent = 'Export & Create ClickUp Task';
 
             if (result.success) {
                 state.docUrl = result.doc_url;
@@ -3442,6 +3442,19 @@
                 resultDiv.innerHTML = `<div class="alert alert-success">✅ Final exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
                 resultDiv.style.display = 'block';
 
+                // Fallback: create ClickUp task if draft export was skipped
+                if (!state.clickupTaskId) {
+                    apiCall('/clickup/create-task', 'POST', {
+                        headline: state.selectedTopic.headline,
+                        publication: state.publication,
+                        doc_url: result.doc_url
+                    }).then(cuResult => {
+                        if (cuResult.success && cuResult.clickup_task_id) {
+                            state.clickupTaskId = cuResult.clickup_task_id;
+                            console.log('[ClickUp] Task created from final export:', cuResult.clickup_task_id);
+                        }
+                    }).catch(err => console.error('[ClickUp] Task creation failed:', err));
+                }
 
             } else {
                 showAlert(document.getElementById('finalExportResult'),
