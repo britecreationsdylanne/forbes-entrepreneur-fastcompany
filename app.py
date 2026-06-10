@@ -560,7 +560,6 @@ def generate_topics():
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=3000,
-            temperature=0.6,
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -633,7 +632,6 @@ def refine_topic():
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=1000,
-            temperature=0.5,
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -703,7 +701,6 @@ def generate_variations():
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=3000,
-            temperature=0.7,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -765,7 +762,6 @@ def generate_talking_points():
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=1500,
-            temperature=0.6,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -836,7 +832,6 @@ def generate_inspiration():
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=2000,
-            temperature=0.7,
             messages=[{"role": "user", "content": prompt}]
         )
 
@@ -949,7 +944,6 @@ def generate_article():
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=4000,
-            temperature=0.7,
             system=system_prompt,
             messages=[
                 {"role": "user", "content": prompt}
@@ -1012,7 +1006,6 @@ def rewrite_article():
         response = client.messages.create(
             model="claude-opus-4-8",
             max_tokens=4000,
-            temperature=0.7,
             system=system_prompt,
             messages=[
                 {"role": "user", "content": prompt}
