@@ -2038,6 +2038,76 @@ def setup_clickup_webhook():
         return jsonify({'success': False, 'error': data}), 500
 
 
+@app.route('/api/clickup/backfill', methods=['GET'])
+def clickup_backfill():
+    """One-off backfill: create a NEW CONTENT ClickUp task for any saved article
+    that is missing one (e.g. exported while the status name was broken and the
+    create call silently failed).
+
+    Dry-run by default - lists what WOULD be created. Pass ?confirm=true to
+    actually create the tasks and write the new IDs back into each draft.
+    """
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    if not CLICKUP_LIST_ID or not CLICKUP_API_TOKEN:
+        return jsonify({'success': False, 'error': 'ClickUp not configured'}), 400
+
+    confirm = request.args.get('confirm', '').lower() == 'true'
+    bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+
+    candidates, created, failed, skipped = [], [], [], []
+
+    for prefix in ['drafts/', 'completed/']:
+        for blob in bucket.list_blobs(prefix=prefix):
+            if not blob.name.endswith('.json'):
+                continue
+            try:
+                article = json.loads(blob.download_as_text())
+            except Exception:
+                continue
+
+            data = article.get('data', {}) or {}
+            # task id is persisted inside data; check top-level too just in case
+            if data.get('clickup_task_id') or article.get('clickup_task_id'):
+                continue  # already has a task
+
+            headline = (data.get('topic') or {}).get('headline')
+            publication = article.get('publication')
+            label = {'blob': blob.name, 'id': article.get('id'),
+                     'title': headline or 'Untitled', 'publication': publication}
+
+            # Only backfill real content: an article was actually written
+            if not headline or not publication or not data.get('article'):
+                skipped.append(label)
+                continue
+
+            candidates.append(label)
+
+            if confirm:
+                task_id = create_clickup_task(headline, publication, data.get('doc_url'))
+                if task_id:
+                    data['clickup_task_id'] = task_id
+                    article['data'] = data
+                    blob.upload_from_string(json.dumps(article, indent=2),
+                                            content_type='application/json')
+                    label['task_id'] = task_id
+                    created.append(label)
+                else:
+                    failed.append(label)
+
+    return jsonify({
+        'success': True,
+        'confirmed': confirm,
+        'needs_task': len(candidates),
+        'candidates': candidates,
+        'created': created,
+        'failed': failed,
+        'skipped_incomplete': len(skipped),
+        'note': ('Dry run - add ?confirm=true to create these tasks'
+                 if not confirm else f'Created {len(created)} task(s)')
+    })
+
+
 # ===================
 # Todoist Helpers
 # ===================
