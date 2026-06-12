@@ -1876,15 +1876,6 @@
         </div>
     </div>
 
-    <!-- Published Calendar Section -->
-    <div id="publishedCalendarSection" style="padding: 60px 20px; background: #1E3A4A;">
-        <div style="max-width: 1200px; margin: 0 auto;">
-            <h2 style="font-size: 36px; color: white; text-align: center; margin-bottom: 10px;">Published Calendar</h2>
-            <p style="color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 30px;">Articles marked Published in ClickUp</p>
-            <div id="publishedList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;"></div>
-        </div>
-    </div>
-
     <!-- Congratulations Modal -->
     <div class="congrats-modal" id="congratsModal">
         <div class="congrats-modal-content">
@@ -2416,23 +2407,6 @@
                 `).join('');
             } else {
                 completedList.innerHTML = '<div class="no-completed-message">No completed articles yet.</div>';
-            }
-        }
-
-        async function loadPublishedCalendar() {
-            const result = await apiCall('/published/list');
-            const publishedList = document.getElementById('publishedList');
-            if (result.published && result.published.length > 0) {
-                publishedList.innerHTML = result.published.map(entry => `
-                    <div class="completed-card">
-                        <h5>${entry.title || 'Untitled Article'}</h5>
-                        <div class="completed-pub">${formatPubName(entry.publication)}</div>
-                        <span class="completed-badge">Published ${formatDate(entry.published_at)}</span>
-                        ${entry.doc_url ? `<div style="margin-top: 10px;"><a href="${entry.doc_url}" target="_blank" style="color: #7EC8C8; font-size: 13px; font-weight: 600;">Open Google Doc →</a></div>` : ''}
-                    </div>
-                `).join('');
-            } else {
-                publishedList.innerHTML = '<div class="no-completed-message" style="color: rgba(255,255,255,0.6);">No published articles yet.</div>';
             }
         }
 
@@ -3629,7 +3603,6 @@
         // ===================
         loadDrafts();
         loadCompletedArticles();
-        loadPublishedCalendar();
 
         // Initialize recipient lists
         renderRecipients('draft');

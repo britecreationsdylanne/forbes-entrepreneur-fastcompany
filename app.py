@@ -1944,7 +1944,7 @@ def create_clickup_task(headline, publication, doc_url=None):
 
     task_data = {
         'name': f"[{get_pub_display_name(publication)}] {headline}",
-        'status': 'proofread',
+        'status': 'NEW CONTENT',
         'description': description
     }
 
@@ -2039,7 +2039,7 @@ def setup_clickup_webhook():
 
 
 # ===================
-# Todoist + Published Calendar Helpers
+# Todoist Helpers
 # ===================
 
 def find_article_by_clickup_task_id(task_id):
@@ -2144,23 +2144,6 @@ def get_clickup_task_info(task_id):
     return title, publication
 
 
-def append_published_entry(entry):
-    """Append entry to published/entries.json in GCS"""
-    if not gcs_client:
-        return
-    bucket = gcs_client.bucket(GCS_BUCKET_NAME)
-    blob = bucket.blob('published/entries.json')
-    entries = []
-    if blob.exists():
-        try:
-            entries = json.loads(blob.download_as_text())
-        except Exception:
-            entries = []
-    entries.append(entry)
-    blob.upload_from_string(json.dumps(entries, indent=2), content_type='application/json')
-    print(f"[PUBLISHED] Added entry: {entry.get('title', 'Untitled')}")
-
-
 # ===================
 # ClickUp Webhook
 # ===================
@@ -2186,10 +2169,16 @@ def clickup_webhook():
     task_id = data.get('task_id')
     print(f"[CLICKUP WEBHOOK] task_id={task_id} new_status={new_status}")
 
-    # Try GCS first, then fall back to ClickUp API for task details
-    article = find_article_by_clickup_task_id(task_id)
+    # Statuses that should create a Todoist "time to record" reminder
+    todoist_phrases = {
+        'submited': 'submitted',          # ClickUp status "SUBMITED"
+        'not submitting': 'not submitting',  # ClickUp status "NOT SUBMITTING"
+        'rejected': 'rejected',           # ClickUp status "REJECTED"
+    }
 
-    if new_status == 'submited':
+    if new_status in todoist_phrases:
+        # Resolve title + publication: GCS draft first, then fall back to ClickUp API
+        article = find_article_by_clickup_task_id(task_id)
         if article:
             pub_name = get_pub_display_name(article.get('publication', ''))
             title = article.get('data', {}).get('topic', {}).get('headline', '')
@@ -2200,61 +2189,10 @@ def clickup_webhook():
             # Strip [Pub Name] prefix from title if present
             if title.startswith('[') and ']' in title:
                 title = title[title.index(']') + 1:].strip()
-        create_todoist_task(f"{pub_name} article submitted ({title}) - time to record")
 
-    elif new_status == 'not submitting':
-        if article:
-            pub_name = get_pub_display_name(article.get('publication', ''))
-            title = article.get('data', {}).get('topic', {}).get('headline', '')
-        else:
-            title, pub = get_clickup_task_info(task_id)
-            pub_name = pub or 'Article'
-            title = title or ''
-            if title.startswith('[') and ']' in title:
-                title = title[title.index(']') + 1:].strip()
-        create_todoist_task(f"{pub_name} article not submitting ({title}) - time to record")
-
-    elif new_status == 'published':
-        if article:
-            title = article.get('data', {}).get('topic', {}).get('headline', 'Untitled')
-            publication = article.get('publication')
-            doc_url = article.get('data', {}).get('doc_url')
-        else:
-            title, publication = get_clickup_task_info(task_id)
-            title = title or 'Untitled'
-            doc_url = None
-
-        entry = {
-            'draft_id': article.get('id') if article else None,
-            'title': title,
-            'publication': publication,
-            'published_at': datetime.now().isoformat(),
-            'doc_url': doc_url
-        }
-        append_published_entry(entry)
+        create_todoist_task(f"{pub_name} article {todoist_phrases[new_status]} ({title}) - time to record")
 
     return jsonify({'ok': True})
-
-
-# ===================
-# Published Calendar
-# ===================
-
-@app.route('/api/published/list', methods=['GET'])
-def list_published():
-    """List published articles from GCS"""
-    if not gcs_client:
-        return jsonify({'published': []})
-    bucket = gcs_client.bucket(GCS_BUCKET_NAME)
-    blob = bucket.blob('published/entries.json')
-    if not blob.exists():
-        return jsonify({'published': []})
-    try:
-        entries = json.loads(blob.download_as_text())
-        entries.sort(key=lambda x: x.get('published_at', ''), reverse=True)
-        return jsonify({'published': entries})
-    except Exception as e:
-        return jsonify({'published': [], 'error': str(e)})
 
 
 # ===================
