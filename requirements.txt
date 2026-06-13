@@ -12,6 +12,7 @@ anthropic>=0.18.0
 requests==2.31.0
 httpx>=0.26.0
 beautifulsoup4==4.12.3
+markdown>=3.5
 
 # Utilities
 python-dotenv==1.0.1

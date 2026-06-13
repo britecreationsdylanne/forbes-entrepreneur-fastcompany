@@ -1583,6 +1583,79 @@ def format_doc_title(year, month, publication, doc_type):
     pub_name = get_pub_display_name(publication)
     return f"{year} {month} {pub_name} {doc_type}"
 
+
+def markdown_to_html(md_text):
+    """Convert stored markdown article text to HTML for the docs formatter."""
+    if not md_text:
+        return ''
+    try:
+        import markdown as _md
+        html = _md.markdown(md_text, extensions=['extra', 'sane_lists'])
+    except Exception as e:
+        print(f"[DOCS] markdown conversion failed ({e}); wrapping as plain paragraphs")
+        paras = [p.strip() for p in md_text.split('\n\n') if p.strip()]
+        html = ''.join(f"<p>{p}</p>" for p in paras)
+    # The docs formatter styles h2/h3 but not h1 - promote h1 so the title gets styled
+    return html.replace('<h1>', '<h2>').replace('</h1>', '</h2>')
+
+
+def create_google_doc(publication, month, year, text_content, article_html=None, is_final=False):
+    """Create a Google Doc for an article and return an info dict. Callable
+    internally (mirrors /api/export-to-docs). Raises on error."""
+    docs_service, drive_service = get_google_docs_service()
+
+    doc_type = 'Final' if is_final else 'Draft'
+    title = format_doc_title(year, month, publication, doc_type)
+
+    pub_key = (publication or '').lower().replace(' ', '')
+    folder_type = 'finals' if is_final else 'drafts'
+    folder_id = FOLDER_IDS.get(pub_key, {}).get(folder_type)
+    if not folder_id:
+        raise ValueError(f'Folder ID not configured for {pub_key}/{folder_type}')
+
+    # Verify folder access (supports Shared Drives)
+    drive_service.files().get(fileId=folder_id, fields='id, name', supportsAllDrives=True).execute()
+
+    doc = drive_service.files().create(
+        body={'name': title, 'mimeType': 'application/vnd.google-apps.document', 'parents': [folder_id]},
+        fields='id', supportsAllDrives=True
+    ).execute()
+    doc_id = doc.get('id')
+
+    final_text = text_content
+    formatting_requests = []
+    if article_html:
+        parsed_text, parser = parse_html_for_docs(article_html)
+        if parsed_text and parser:
+            final_text = parsed_text
+            formatting_requests = parser.get_docs_requests(start_index=1)
+
+    docs_service.documents().batchUpdate(
+        documentId=doc_id,
+        body={'requests': [{'insertText': {'location': {'index': 1}, 'text': final_text}}]}
+    ).execute()
+
+    if formatting_requests:
+        try:
+            docs_service.documents().batchUpdate(
+                documentId=doc_id, body={'requests': formatting_requests}
+            ).execute()
+        except Exception as fmt_err:
+            print(f"[DOCS] Formatting error (continuing): {fmt_err}")
+
+    drive_service.permissions().create(
+        fileId=doc_id, body={'type': 'anyone', 'role': 'reader'}, supportsAllDrives=True
+    ).execute()
+
+    return {
+        'doc_id': doc_id,
+        'doc_url': f"https://docs.google.com/document/d/{doc_id}/edit",
+        'title': title,
+        'folder': folder_type,
+        'formatting_applied': bool(formatting_requests),
+    }
+
+
 @app.route('/api/export-transcription', methods=['POST'])
 def export_transcription():
     """Export transcription to Google Docs"""
@@ -2105,6 +2178,122 @@ def clickup_backfill():
         'skipped_incomplete': len(skipped),
         'note': ('Dry run - add ?confirm=true to create these tasks'
                  if not confirm else f'Created {len(created)} task(s)')
+    })
+
+
+# Custom-field names that hold the Google Doc link (matched case-insensitively).
+GDOC_FIELD_NAMES = ('g-doc', 'gdoc', 'g doc', 'google doc', 'google-doc', 'g-docs', 'doc')
+
+
+def _find_clickup_field(task_data, names):
+    """Find a custom field on a task by (case-insensitive) name."""
+    for field in task_data.get('custom_fields', []) or []:
+        if (field.get('name') or '').strip().lower() in names:
+            return field
+    return None
+
+
+@app.route('/api/clickup/relink', methods=['GET'])
+def clickup_relink():
+    """For articles that have a ClickUp task but no saved Google Doc, re-export the
+    stored article to a Doc, persist the url, and attach it to the task (G-Doc
+    custom field if settable + description fallback). Dry-run unless ?confirm=true.
+    """
+    if not gcs_client:
+        return jsonify({'success': False, 'error': 'GCS not available'}), 503
+    if not CLICKUP_LIST_ID or not CLICKUP_API_TOKEN:
+        return jsonify({'success': False, 'error': 'ClickUp not configured'}), 400
+
+    confirm = request.args.get('confirm', '').lower() == 'true'
+    settable_types = ('url', 'text', 'short_text', 'email')
+    bucket = gcs_client.bucket(GCS_BUCKET_NAME)
+    targets, done, failed, skipped = [], [], [], []
+    gdoc_field_preview = None
+
+    for prefix in ['drafts/', 'completed/']:
+        for blob in bucket.list_blobs(prefix=prefix):
+            if not blob.name.endswith('.json'):
+                continue
+            try:
+                article = json.loads(blob.download_as_text())
+            except Exception:
+                continue
+
+            data = article.get('data', {}) or {}
+            task_id = data.get('clickup_task_id') or article.get('clickup_task_id')
+            body = data.get('article')
+            headline = (data.get('topic') or {}).get('headline')
+            publication = article.get('publication')
+
+            if not task_id or not body or not headline or not publication:
+                continue
+            if data.get('doc_url'):
+                skipped.append({'task_id': task_id, 'title': headline, 'reason': 'already linked'})
+                continue
+
+            label = {'blob': blob.name, 'task_id': task_id, 'title': headline}
+            targets.append(label)
+
+            # Dry-run: inspect the G-Doc field once so we know its type before acting
+            if not confirm:
+                if gdoc_field_preview is None:
+                    ok, tdata = clickup_request('GET', f'/task/{task_id}')
+                    if ok:
+                        f = _find_clickup_field(tdata, GDOC_FIELD_NAMES)
+                        if f:
+                            gdoc_field_preview = {'name': f.get('name'), 'id': f.get('id'),
+                                                  'type': f.get('type'),
+                                                  'settable': f.get('type') in settable_types}
+                        else:
+                            gdoc_field_preview = {'found': False,
+                                                  'available_fields': [x.get('name') for x in (tdata.get('custom_fields') or [])]}
+                continue
+
+            # Confirm: re-export the stored markdown article to a Google Doc
+            try:
+                html = markdown_to_html(body)
+                result = create_google_doc(publication, article.get('month'), article.get('year'),
+                                           body, html, is_final=False)
+            except Exception as e:
+                label['error'] = f'export failed: {e}'
+                failed.append(label)
+                continue
+
+            new_url = result['doc_url']
+
+            # Persist the url so it survives and won't be re-linked again
+            data['doc_url'] = new_url
+            article['data'] = data
+            blob.upload_from_string(json.dumps(article, indent=2), content_type='application/json')
+
+            # Attach to the task: G-Doc field (if a settable type) + description fallback
+            field_set = None
+            ok, tdata = clickup_request('GET', f'/task/{task_id}')
+            if ok:
+                f = _find_clickup_field(tdata, GDOC_FIELD_NAMES)
+                if f and f.get('type') in settable_types:
+                    field_set, _ = clickup_request('POST', f"/task/{task_id}/field/{f.get('id')}", {'value': new_url})
+                else:
+                    field_set = False
+                desc = tdata.get('description') or ''
+                if 'G-Doc:' not in desc:
+                    clickup_request('PUT', f'/task/{task_id}', {'description': desc + f"\n\nG-Doc: {new_url}"})
+
+            label['doc_url'] = new_url
+            label['gdoc_field_set'] = field_set
+            done.append(label)
+
+    return jsonify({
+        'success': True,
+        'confirmed': confirm,
+        'targets': len(targets),
+        'candidates': [t['title'] for t in targets] if not confirm else None,
+        'gdoc_field': gdoc_field_preview,
+        'done': done,
+        'failed': failed,
+        'skipped': skipped,
+        'note': ('Dry run - review gdoc_field, then add ?confirm=true to export & attach'
+                 if not confirm else f'Re-exported and linked {len(done)} task(s)')
     })
 
 
