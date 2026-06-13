@@ -2181,23 +2181,12 @@ def clickup_backfill():
     })
 
 
-# Custom-field names that hold the Google Doc link (matched case-insensitively).
-GDOC_FIELD_NAMES = ('g-doc', 'gdoc', 'g doc', 'google doc', 'google-doc', 'g-docs', 'doc')
-
-
-def _find_clickup_field(task_data, names):
-    """Find a custom field on a task by (case-insensitive) name."""
-    for field in task_data.get('custom_fields', []) or []:
-        if (field.get('name') or '').strip().lower() in names:
-            return field
-    return None
-
-
 @app.route('/api/clickup/relink', methods=['GET'])
 def clickup_relink():
-    """For articles that have a ClickUp task but no saved Google Doc, re-export the
-    stored article to a Doc, persist the url, and attach it to the task (G-Doc
-    custom field if settable + description fallback). Dry-run unless ?confirm=true.
+    """For ClickUp tasks whose description has no Google Doc link, re-export the
+    stored article to a Doc and add a clickable 'Draft: <url>' to the description
+    (same mechanism the normal create flow uses). Tasks that already have a doc
+    link are skipped. Dry-run unless ?confirm=true.
     """
     if not gcs_client:
         return jsonify({'success': False, 'error': 'GCS not available'}), 503
@@ -2205,10 +2194,8 @@ def clickup_relink():
         return jsonify({'success': False, 'error': 'ClickUp not configured'}), 400
 
     confirm = request.args.get('confirm', '').lower() == 'true'
-    settable_types = ('url', 'text', 'short_text', 'email')
     bucket = gcs_client.bucket(GCS_BUCKET_NAME)
     targets, done, failed, skipped = [], [], [], []
-    gdoc_field_preview = None
 
     for prefix in ['drafts/', 'completed/']:
         for blob in bucket.list_blobs(prefix=prefix):
@@ -2227,29 +2214,33 @@ def clickup_relink():
 
             if not task_id or not body or not headline or not publication:
                 continue
-            if data.get('doc_url'):
-                skipped.append({'task_id': task_id, 'title': headline, 'reason': 'already linked'})
+
+            # Check the live task: does its description already carry a doc link?
+            ok, tdata = clickup_request('GET', f'/task/{task_id}')
+            if not ok:
+                skipped.append({'task_id': task_id, 'title': headline, 'reason': 'task fetch failed'})
+                continue
+            desc = tdata.get('description') or ''
+
+            if 'docs.google.com' in desc:
+                # Already linked - persist the existing url so it stops re-appearing
+                if confirm and not data.get('doc_url'):
+                    m = re.search(r'https://docs\.google\.com/\S+', desc)
+                    if m:
+                        data['doc_url'] = m.group(0).rstrip(').,')
+                        article['data'] = data
+                        blob.upload_from_string(json.dumps(article, indent=2),
+                                                content_type='application/json')
+                skipped.append({'task_id': task_id, 'title': headline,
+                                'reason': 'already linked in description'})
                 continue
 
-            label = {'blob': blob.name, 'task_id': task_id, 'title': headline}
+            label = {'task_id': task_id, 'title': headline}
             targets.append(label)
-
-            # Dry-run: inspect the G-Doc field once so we know its type before acting
             if not confirm:
-                if gdoc_field_preview is None:
-                    ok, tdata = clickup_request('GET', f'/task/{task_id}')
-                    if ok:
-                        f = _find_clickup_field(tdata, GDOC_FIELD_NAMES)
-                        if f:
-                            gdoc_field_preview = {'name': f.get('name'), 'id': f.get('id'),
-                                                  'type': f.get('type'),
-                                                  'settable': f.get('type') in settable_types}
-                        else:
-                            gdoc_field_preview = {'found': False,
-                                                  'available_fields': [x.get('name') for x in (tdata.get('custom_fields') or [])]}
                 continue
 
-            # Confirm: re-export the stored markdown article to a Google Doc
+            # Re-export the stored markdown article to a fresh Google Doc
             try:
                 html = markdown_to_html(body)
                 result = create_google_doc(publication, article.get('month'), article.get('year'),
@@ -2261,26 +2252,15 @@ def clickup_relink():
 
             new_url = result['doc_url']
 
-            # Persist the url so it survives and won't be re-linked again
+            # Persist the url, then add the link to the task description
             data['doc_url'] = new_url
             article['data'] = data
             blob.upload_from_string(json.dumps(article, indent=2), content_type='application/json')
 
-            # Attach to the task: G-Doc field (if a settable type) + description fallback
-            field_set = None
-            ok, tdata = clickup_request('GET', f'/task/{task_id}')
-            if ok:
-                f = _find_clickup_field(tdata, GDOC_FIELD_NAMES)
-                if f and f.get('type') in settable_types:
-                    field_set, _ = clickup_request('POST', f"/task/{task_id}/field/{f.get('id')}", {'value': new_url})
-                else:
-                    field_set = False
-                desc = tdata.get('description') or ''
-                if 'G-Doc:' not in desc:
-                    clickup_request('PUT', f'/task/{task_id}', {'description': desc + f"\n\nG-Doc: {new_url}"})
+            new_desc = (desc + f"\n\nDraft: {new_url}") if desc else f"Draft: {new_url}"
+            clickup_request('PUT', f'/task/{task_id}', {'description': new_desc})
 
             label['doc_url'] = new_url
-            label['gdoc_field_set'] = field_set
             done.append(label)
 
     return jsonify({
@@ -2288,12 +2268,11 @@ def clickup_relink():
         'confirmed': confirm,
         'targets': len(targets),
         'candidates': [t['title'] for t in targets] if not confirm else None,
-        'gdoc_field': gdoc_field_preview,
         'done': done,
         'failed': failed,
         'skipped': skipped,
-        'note': ('Dry run - review gdoc_field, then add ?confirm=true to export & attach'
-                 if not confirm else f'Re-exported and linked {len(done)} task(s)')
+        'note': ('Dry run - add ?confirm=true to export & link the missing ones'
+                 if not confirm else f'Linked {len(done)} task(s)')
     })
 
 
