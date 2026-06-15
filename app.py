@@ -2276,6 +2276,42 @@ def clickup_relink():
     })
 
 
+@app.route('/api/clickup/tasks', methods=['GET'])
+def clickup_list_tasks():
+    """Read-only: list tasks in the configured ClickUp list with their status and
+    created date. Optional ?since=YYYY-MM-DD to only return tasks created on/after
+    that date (e.g. ?since=2026-06-15 for today)."""
+    if not CLICKUP_LIST_ID or not CLICKUP_API_TOKEN:
+        return jsonify({'success': False, 'error': 'ClickUp not configured'}), 400
+
+    since = request.args.get('since')  # YYYY-MM-DD
+    ok, data = clickup_request('GET', f'/list/{CLICKUP_LIST_ID}/task?subtasks=true&include_closed=true')
+    if not ok:
+        return jsonify({'success': False, 'error': data}), 500
+
+    tasks = []
+    for t in data.get('tasks', []):
+        created_ms = t.get('date_created')
+        created_iso, created_date = None, None
+        if created_ms:
+            dt = datetime.fromtimestamp(int(created_ms) / 1000)
+            created_iso = dt.isoformat()
+            created_date = dt.strftime('%Y-%m-%d')
+        if since and (not created_date or created_date < since):
+            continue
+        tasks.append({
+            'id': t.get('id'),
+            'name': t.get('name'),
+            'status': (t.get('status') or {}).get('status'),
+            'created': created_iso,
+            'created_date': created_date,
+            'creator': (t.get('creator') or {}).get('username'),
+        })
+
+    tasks.sort(key=lambda x: x.get('created') or '', reverse=True)
+    return jsonify({'success': True, 'count': len(tasks), 'tasks': tasks})
+
+
 # ===================
 # Todoist Helpers
 # ===================
