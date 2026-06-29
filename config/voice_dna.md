@@ -53,7 +53,9 @@ These words are statistically overrepresented in LLM output. They are the finger
 
 delve, realm, harness, unlock, tapestry, paradigm, cutting-edge, revolutionize, landscape (abstract), intricate/intricacies, showcasing, crucial, pivotal, surpass, meticulously, vibrant, unparalleled, underscore (verb), leverage, synergy, innovative, game-changer, testament, commendable, meticulous, highlight (verb), emphasize, boast, groundbreaking, align, foster, showcase, enhance, holistic, garner, accentuate, pioneering, trailblazing, unleash, versatile, transformative, redefine, seamless, optimize, scalable, robust, breakthrough, empower, streamline, frictionless, elevate, adaptive, effortless, data-driven, insightful, proactive, mission-critical, visionary, disruptive, reimagine, unprecedented, intuitive, leading-edge, synergize, democratize, accelerate, state-of-the-art, dynamic, immersive, predictive, transparent, proprietary, integrated, plug-and-play, turnkey, future-proof, paradigm-shifting, supercharge, enduring, interplay, valuable, captivate
 
-Also banned: "serves as," "stands as," "marks a," "represents a," "boasts a," "features a," "offers a" when used to avoid "is" or "has." Just say "is."
+Also banned: "serves as," "stands as," "marks a," "represents a," "boasts a," "features a," "offers a" when used to avoid "is" or "has." Just say "is." And "powerful" as a hype adjective.
+
+Carve-outs for literal topics: "disruption" as the actual subject of a piece and "operating leverage" as a literal financial/operational concept are allowed. "Disruptive" as a hype adjective and "leverage" as a verb ("leverage your network") stay banned.
 
 ### 3B. Dead phrases
 
@@ -70,6 +72,7 @@ Also banned: "serves as," "stands as," "marks a," "represents a," "boasts a," "f
 - "The implications here are..."
 - "In other words..."
 - "It goes without saying..."
+- "Here's the thing" / "Here's why this matters" / "The truth is" (AI setup phrases)
 - "Here's the part nobody's talking about" / "What nobody tells you"
 - Anything with "nobody" or "most people don't realize"
 - "In this article, I will..." (all meta commentary about what you're about to do)
@@ -80,6 +83,7 @@ Also banned: "serves as," "stands as," "marks a," "represents a," "boasts a," "f
 
 - "Furthermore" / "Additionally" / "Moreover"
 - "That said" / "That being said"
+- "Ultimately"
 - "With that in mind"
 - "It is also worth mentioning"
 - "On top of that"

@@ -179,7 +179,7 @@ ANTI-AI WRITING RULES (HARD BANS — these override EVERYTHING, including the ex
 - NEVER start paragraphs with "In today's..." or "In an era of..."
 - Vary sentence length naturally. Mix short punchy sentences (5-8 words) with medium ones.
 - Use contractions naturally (don't, won't, it's, I've, we're).
-- Write like a real person talking to a colleague, not like an essay. Include occasional informal transitions ("Look,", "Here's the thing:", "The way I see it,").
+- Write like a real person talking to a colleague, not like an essay. Do NOT use AI setup phrases like "Here's the thing", "Here's why this matters", "The truth is", or "Ultimately".
 - Avoid perfectly parallel structure in lists or consecutive paragraphs. Real writers vary their patterns.
 - Don't overuse transitional phrases. Sometimes just start a new thought.
 - Prefer simple, everyday words over impressive-sounding ones (use "use" not "utilize", "help" not "facilitate", "start" not "commence")."""
@@ -189,18 +189,17 @@ ANTI-AI WRITING RULES (HARD BANS — these override EVERYTHING, including the ex
 
 ---
 
-VOICE DNA REFERENCE (lowest priority, background voice guide):
+DUSTIN VOICE DNA AND HARD WRITING RULES (AUTHORITATIVE — enforce every banned item):
 
-The reference below describes Dustin's general writing voice and patterns to avoid sounding like AI. Treat it as a taste guide, NOT a hard ruleset.
+The reference below is the canonical ruleset for Dustin's voice and the AI tells you must eliminate. Its banned list and "fatal patterns" are HARD BANS: if even one appears in your draft, the draft has failed. Treat it as a checklist you must pass, not as background texture.
 
 PRIORITY ORDER (higher trumps lower):
 1. The publication's style guide and tone (ABOVE)
-2. The real published examples (ABOVE — primary reference for voice, tone, structure)
-3. The BriteCo brand editorial rules (ABOVE)
-4. The ANTI-AI WRITING RULES (ABOVE — hard bans that override examples)
-5. This Voice DNA reference (BELOW — apply only when nothing above conflicts)
+2. The BriteCo brand editorial rules (ABOVE)
+3. These Voice DNA hard rules (BELOW — banned words, em dashes, negative parallelism, rule-of-three, etc. These OVERRIDE the published examples.)
+4. The real published examples (ABOVE — emulate their voice, rhythm, and structure ONLY; never copy their punctuation, em dashes, or any banned tokens)
 
-If anything in this Voice DNA contradicts a rule above, follow the rule above. Use this as background texture, not as a checklist.
+The examples teach voice and structure. These rules govern punctuation, vocabulary, and sentence patterns. When they conflict, these rules win.
 
 {voice_dna}"""
 
@@ -242,6 +241,9 @@ def sanitize_llm_output(text: str) -> str:
     text = text.replace(' —', ',')
     text = text.replace('— ', ', ')
     text = text.replace('—', ', ')
+    # En dashes too (AI uses these as em-dash substitutes in prose)
+    text = text.replace(' – ', ', ')
+    text = text.replace('–', '-')
 
     # Remove overused LLM filler words/phrases (case-insensitive replacements)
     llm_phrases = [
@@ -279,6 +281,18 @@ def sanitize_llm_output(text: str) -> str:
         (r'\bcommence\b', 'start'),
         (r'\brobust\b', 'strong'),
         (r'\bRobust\b', 'Strong'),
+        (r'\bfoster\b', 'build'),
+        (r'\bstreamline\b', 'simplify'),
+        (r'\bempower\b', 'enable'),
+        (r'\bshowcase\b', 'show'),
+        (r'\bharness\b', 'use'),
+        (r'\bgarner\b', 'get'),
+        (r'\bbolster\b', 'strengthen'),
+        (r'\benhance\b', 'improve'),
+        (r'\boptimize\b', 'improve'),
+        (r'\bintricate\b', 'complex'),
+        (r'\bmeticulous(?:ly)?\b', 'careful'),
+        (r'\bunderscores?\b', 'shows'),
     ]
 
     for pattern, replacement in llm_phrases:
@@ -291,6 +305,47 @@ def sanitize_llm_output(text: str) -> str:
     text = re.sub(r'\s,\s(?=[a-z])', ' ', text)
 
     return text
+
+
+def audit_article_voice(client, article_text: str, publication: str) -> str:
+    """Second-pass editor: rewrite the draft to remove AI writing tells per Dustin's
+    hard rules, preserving his ideas, structure, anecdotes, facts, and meaning.
+    Returns the cleaned article, or the original on any failure (never blocks output)."""
+    rules = load_voice_dna()
+    if not article_text or not rules:
+        return article_text
+
+    audit_prompt = f"""You are Dustin Lemick's editor. Below is a draft article ghostwritten in his voice, followed by his hard writing rules. Your only job is to fix every rule violation while preserving his ideas, argument, structure, anecdotes, facts, numbers, and names EXACTLY. Do not add new content, do not invent facts or numbers, do not change the meaning, do not change the word count meaningfully.
+
+Fix these tells specifically:
+- Remove ALL em dashes from the body (use commas, periods, colons, semicolons, or parentheses).
+- Rewrite every negative-parallelism / reframe construction ("It's not X, it's Y", "Not X. Y.", "While X might seem..., Y is actually...", concession-then-pivot) by deleting everything before the positive claim and keeping only the positive claim.
+- Break up stacked fragments and repeated sentence stems.
+- Replace every banned word and AI setup phrase ("Here's the thing", "The truth is", "Ultimately", etc.) with plain language.
+- Cut rule-of-three triads, puffery, participle-phrase fake depth, meta commentary, and any chat leakage.
+- Make all headers sentence case. Keep the closing forward-facing (no recap, no moralizing).
+
+Return ONLY the corrected article text. No preamble, no notes, no explanation.
+
+=== DUSTIN'S HARD RULES ===
+{rules}
+
+=== DRAFT TO FIX ===
+{article_text}"""
+
+    try:
+        response = client.messages.create(
+            model="claude-opus-4-8",
+            max_tokens=4000,
+            system="You are a meticulous editor who removes AI writing tells without changing the author's meaning, structure, or facts, and without inventing content.",
+            messages=[{"role": "user", "content": audit_prompt}]
+        )
+        cleaned = (response.content[0].text or "").strip()
+        return cleaned or article_text
+    except Exception as e:
+        print(f"[AUDIT] Voice audit failed, using original draft: {e}")
+        return article_text
+
 
 def get_google_docs_service():
     """Get Google Docs API service"""
@@ -952,7 +1007,9 @@ def generate_article():
 
         article_content = response.content[0].text
 
-        # Post-process to catch any remaining LLM artifacts
+        # Second-pass voice audit: rewrite out AI tells per Dustin's hard rules
+        article_content = audit_article_voice(client, article_content, publication)
+        # Deterministic backstop for any remaining LLM artifacts
         article_content = sanitize_llm_output(article_content)
 
         # Count words
@@ -1012,7 +1069,8 @@ def rewrite_article():
             ]
         )
 
-        rewritten = sanitize_llm_output(response.content[0].text)
+        rewritten = audit_article_voice(client, response.content[0].text, publication)
+        rewritten = sanitize_llm_output(rewritten)
 
         return jsonify({
             'success': True,
