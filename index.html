@@ -1719,8 +1719,8 @@
 
         <!-- Step 5: Draft Review -->
         <div class="panel" id="step5">
-            <h2>Review Draft</h2>
-            <p style="color: var(--gray); margin-bottom: 20px;">Review and edit the generated article before sending for team review.</p>
+            <h2>Draft</h2>
+            <p style="color: var(--gray); margin-bottom: 20px;">Review and edit the draft, then export it to the Drafts folder and create the New Content ClickUp task.</p>
 
             <div class="form-group">
                 <label>Article Title</label>
@@ -1792,10 +1792,10 @@
             </div>
         </div>
 
-        <!-- Step 6: Final Review & Export -->
+        <!-- Step 6: Final draft review -->
         <div class="panel" id="step6">
-            <h2>Final Article</h2>
-            <p style="color: var(--gray); margin-bottom: 20px;">Make final edits and export for submission.</p>
+            <h2>Final draft review</h2>
+            <p style="color: var(--gray); margin-bottom: 20px;">Make any final edits and export the finalized draft. This does not change the ClickUp status.</p>
 
             <div class="form-group">
                 <label>Final Title</label>
@@ -2215,12 +2215,26 @@
             text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
             text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
             text = text.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+            // Convert bullet lists: consecutive "- " or "* " lines -> <ul><li>
+            text = text.replace(/(?:^[ \t]*[-*] .+(?:\n|$))+/gm, function(block) {
+                const items = block.trimEnd().split('\n')
+                    .map(l => l.replace(/^[ \t]*[-*] /, '').trim())
+                    .map(t => `<li>${t}</li>`).join('');
+                return `<ul>${items}</ul>\n`;
+            });
+            // Convert numbered lists: consecutive "1. " lines -> <ol><li>
+            text = text.replace(/(?:^[ \t]*\d+\. .+(?:\n|$))+/gm, function(block) {
+                const items = block.trimEnd().split('\n')
+                    .map(l => l.replace(/^[ \t]*\d+\. /, '').trim())
+                    .map(t => `<li>${t}</li>`).join('');
+                return `<ol>${items}</ol>\n`;
+            });
             // Convert **bold** to <strong>
             text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             // Convert *italic* to <em>
             text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            // Convert line breaks to <br> for non-heading lines
-            text = text.replace(/\n(?!<h[23]>)/g, '<br>');
+            // Convert remaining line breaks to <br>, but never inside block/list tags
+            text = text.replace(/\n(?!<h[23]>|<\/?[uo]l>|<li>)/g, '<br>');
             return text;
         }
 
@@ -3277,12 +3291,15 @@
             }
         });
 
-        document.getElementById('exportDraftBtn').addEventListener('click', async () => {
+        // Export the draft to Google Docs AND create the New Content ClickUp task.
+        // Awaited and visible so a ClickUp failure is never silent. Returns true on a
+        // successful export. Reused by the page-5 button and the proceed-to-final popup.
+        async function exportDraftAndCreateTask() {
             const btn = document.getElementById('exportDraftBtn');
+            const resultDiv = document.getElementById('draftExportResult');
             btn.disabled = true;
             btn.textContent = 'Exporting...';
 
-            // Get both plain text and HTML for export
             const articleHtml = getEditorHtml(document.getElementById('articleEditor'));
 
             const result = await apiCall('/export-to-docs', 'POST', {
@@ -3298,32 +3315,42 @@
             btn.disabled = false;
             btn.textContent = 'Export & Create ClickUp Task';
 
-            if (result.success) {
-                state.docUrl = result.doc_url;
-                const resultDiv = document.getElementById('draftExportResult');
-                resultDiv.innerHTML = `<div class="alert alert-success">✅ Draft exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
-                resultDiv.style.display = 'block';
+            if (!result.success) {
+                showAlert(resultDiv, `❌ Export error: ${result.error}`, 'error');
+                return false;
+            }
 
-                // Create ClickUp task (non-blocking)
-                if (!state.clickupTaskId) {
-                    apiCall('/clickup/create-task', 'POST', {
+            state.docUrl = result.doc_url;
+
+            // Create the ClickUp task (New Content) — awaited, with a visible result
+            let clickupMsg = '';
+            if (!state.clickupTaskId) {
+                try {
+                    const cuResult = await apiCall('/clickup/create-task', 'POST', {
                         headline: state.selectedTopic.headline,
                         publication: state.publication,
                         doc_url: result.doc_url
-                    }).then(cuResult => {
-                        if (cuResult.success && cuResult.clickup_task_id) {
-                            state.clickupTaskId = cuResult.clickup_task_id;
-                            console.log('[ClickUp] Task created:', cuResult.clickup_task_id);
-                            // Persist to draft so we don't duplicate if user leaves and returns
-                            saveDraft();
-                        }
-                    }).catch(err => console.error('[ClickUp] Task creation failed:', err));
+                    });
+                    if (cuResult.success && cuResult.clickup_task_id) {
+                        state.clickupTaskId = cuResult.clickup_task_id;
+                        saveDraft();
+                        clickupMsg = '<br>✅ ClickUp task created in <strong>New Content</strong>.';
+                    } else {
+                        clickupMsg = '<br>⚠️ <strong>ClickUp task was NOT created.</strong> Please try again.';
+                    }
+                } catch (err) {
+                    clickupMsg = '<br>⚠️ <strong>ClickUp task failed:</strong> ' + err;
                 }
             } else {
-                showAlert(document.getElementById('draftExportResult'),
-                    `❌ Error: ${result.error}`, 'error');
+                clickupMsg = '<br>✅ ClickUp task already exists.';
             }
-        });
+
+            resultDiv.innerHTML = `<div class="alert alert-success">✅ Draft exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a>${clickupMsg}</div>`;
+            resultDiv.style.display = 'block';
+            return true;
+        }
+
+        document.getElementById('exportDraftBtn').addEventListener('click', exportDraftAndCreateTask);
 
         document.getElementById('sendDraftEmailBtn').addEventListener('click', async () => {
             if (!state.docUrl) {
@@ -3365,11 +3392,23 @@
         });
 
         document.getElementById('step5Back').addEventListener('click', () => showPanel(3));
-        document.getElementById('step5Next').addEventListener('click', () => {
+        document.getElementById('step5Next').addEventListener('click', async () => {
             // Copy to final editor - get HTML to preserve formatting
             document.getElementById('finalTitle').value = state.selectedTopic.headline;
             document.getElementById('finalEditor').innerHTML = document.getElementById('articleEditor').innerHTML;
             updateFinalWordCount();
+
+            // Safety net: make sure the New Content ClickUp task exists before final review
+            if (!state.clickupTaskId) {
+                const proceed = confirm(
+                    "Wait — you haven't created the ClickUp task yet.\n\n" +
+                    "Click OK to export this draft and create the ClickUp task (New Content) now.\n" +
+                    "Click Cancel to continue without it."
+                );
+                if (proceed) {
+                    await exportDraftAndCreateTask();
+                }
+            }
             showPanel(6);
         });
 
@@ -3415,24 +3454,10 @@
             if (result.success) {
                 state.docUrl = result.doc_url;
                 const resultDiv = document.getElementById('finalExportResult');
-                resultDiv.innerHTML = `<div class="alert alert-success">✅ Final exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
+                resultDiv.innerHTML = `<div class="alert alert-success">✅ Final draft exported! <a href="${result.doc_url}" target="_blank" style="color: #155724; font-weight: bold;">Open in Google Docs →</a></div>`;
                 resultDiv.style.display = 'block';
-
-                // Fallback: create ClickUp task if draft export was skipped
-                if (!state.clickupTaskId) {
-                    apiCall('/clickup/create-task', 'POST', {
-                        headline: state.selectedTopic.headline,
-                        publication: state.publication,
-                        doc_url: result.doc_url
-                    }).then(cuResult => {
-                        if (cuResult.success && cuResult.clickup_task_id) {
-                            state.clickupTaskId = cuResult.clickup_task_id;
-                            console.log('[ClickUp] Task created from final export:', cuResult.clickup_task_id);
-                            // Persist to draft so we don't duplicate if user leaves and returns
-                            saveDraft();
-                        }
-                    }).catch(err => console.error('[ClickUp] Task creation failed:', err));
-                }
+                // Note: the final page intentionally does NOT touch ClickUp. The New Content
+                // task is created at the draft stage (page 5) or the proceed-to-final popup.
 
             } else {
                 showAlert(document.getElementById('finalExportResult'),
@@ -3603,6 +3628,18 @@
         // ===================
         loadDrafts();
         loadCompletedArticles();
+
+        // Default the target month (page 1) to the current month so it's right unless
+        // DL deliberately changes it. Month stays required to proceed.
+        (function defaultCurrentMonth() {
+            const cur = new Date().toLocaleString('en-US', { month: 'long' });
+            const sel = document.getElementById('monthSelect');
+            if (sel && !sel.value) {
+                sel.value = cur;
+                state.month = cur;
+                checkStep1Complete();
+            }
+        })();
 
         // Initialize recipient lists
         renderRecipients('draft');

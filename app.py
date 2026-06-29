@@ -1485,6 +1485,7 @@ class HTMLToDocsParser(HTMLParser):
         self.current_pos = 0
         self.tag_stack = []
         self.link_url = None
+        self.list_stack = []
 
     def handle_starttag(self, tag, attrs):
         attrs_dict = dict(attrs)
@@ -1497,6 +1498,10 @@ class HTMLToDocsParser(HTMLParser):
         elif tag == 'a':
             self.link_url = attrs_dict.get('href', '')
             self.tag_stack.append(('link', len(self.text)))
+        elif tag == 'h1':
+            if self.text and not self.text.endswith('\n'):
+                self.text += '\n'
+            self.tag_stack.append(('heading1', len(self.text)))
         elif tag == 'h2':
             self.tag_stack.append(('heading2', len(self.text)))
         elif tag == 'h3':
@@ -1506,6 +1511,18 @@ class HTMLToDocsParser(HTMLParser):
         elif tag == 'p':
             if self.text and not self.text.endswith('\n'):
                 self.text += '\n'
+        elif tag in ['ul', 'ol']:
+            if self.text and not self.text.endswith('\n'):
+                self.text += '\n'
+            self.list_stack.append({'type': tag, 'count': 0})
+        elif tag == 'li':
+            if self.text and not self.text.endswith('\n'):
+                self.text += '\n'
+            if self.list_stack and self.list_stack[-1]['type'] == 'ol':
+                self.list_stack[-1]['count'] += 1
+                self.text += f"{self.list_stack[-1]['count']}. "
+            else:
+                self.text += '• '
         elif tag == 'blockquote':
             self.tag_stack.append(('blockquote', len(self.text)))
 
@@ -1519,6 +1536,10 @@ class HTMLToDocsParser(HTMLParser):
         elif tag == 'a':
             self._close_tag('link')
             self.link_url = None
+        elif tag == 'h1':
+            self._close_tag('heading1')
+            if not self.text.endswith('\n'):
+                self.text += '\n'
         elif tag == 'h2':
             self._close_tag('heading2')
             if not self.text.endswith('\n'):
@@ -1528,6 +1549,14 @@ class HTMLToDocsParser(HTMLParser):
             if not self.text.endswith('\n'):
                 self.text += '\n'
         elif tag in ['p', 'div']:
+            if not self.text.endswith('\n'):
+                self.text += '\n'
+        elif tag in ['ul', 'ol']:
+            if self.list_stack:
+                self.list_stack.pop()
+            if not self.text.endswith('\n'):
+                self.text += '\n'
+        elif tag == 'li':
             if not self.text.endswith('\n'):
                 self.text += '\n'
         elif tag == 'blockquote':
@@ -1593,6 +1622,14 @@ class HTMLToDocsParser(HTMLParser):
                             'foregroundColor': {'color': {'rgbColor': {'red': 0, 'green': 0.5, 'blue': 0.5}}}
                         },
                         'fields': 'link,foregroundColor'
+                    }
+                })
+            elif fmt['type'] == 'heading1':
+                requests.append({
+                    'updateTextStyle': {
+                        'range': {'startIndex': start, 'endIndex': end},
+                        'textStyle': {'bold': True, 'fontSize': {'magnitude': 18, 'unit': 'PT'}},
+                        'fields': 'bold,fontSize'
                     }
                 })
             elif fmt['type'] == 'heading2':
@@ -1952,8 +1989,8 @@ def send_notification():
 
         # Build email content
         if notification_type == 'final':
-            subject = f"{pub_display_name} {month} (Final) - Ready for Submission"
-            status_text = "FINAL - Ready for Submission"
+            subject = f"{pub_display_name} {month} (Final Draft) - Finalized"
+            status_text = "FINAL DRAFT - Finalized"
             status_color = "#28a745"
         else:
             subject = f"{pub_display_name} {month} (Draft) - Ready for Review"
@@ -1989,7 +2026,7 @@ def send_notification():
                         <p><strong>Title:</strong> {title}</p>
                     </div>
 
-                    <p>{"This article is finalized and ready for submission to " + pub_display_name + "." if notification_type == 'final' else "Please review this draft and make any necessary edits."}</p>
+                    <p>{"This draft has been finalized and saved to the Finals folder." if notification_type == 'final' else "Please review this draft and make any necessary edits."}</p>
 
                     <a href="{doc_url}" class="button" style="color: white;">Open in Google Docs</a>
 
