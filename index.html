@@ -2477,6 +2477,7 @@
                 state.transcription = data.transcription;
                 state.article = data.article;
                 state.clickupTaskId = data.clickup_task_id || null;
+                state.docUrl = data.doc_url || null;
 
                 // Update step 1 UI
                 if (state.publication) {
@@ -2540,7 +2541,8 @@
                     topic: state.selectedTopic,
                     transcription: state.transcription,
                     article: state.article,
-                    clickup_task_id: state.clickupTaskId
+                    clickup_task_id: state.clickupTaskId,
+                    doc_url: state.docUrl
                 }
             };
 

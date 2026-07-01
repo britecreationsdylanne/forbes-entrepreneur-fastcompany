@@ -71,6 +71,28 @@ def get_current_user():
     """Get current user from session"""
     return session.get('user')
 
+
+# Endpoints reachable without an authenticated session.
+# - /auth/*, /static/*  : the login flow and assets
+# - /                   : the index route does its own login redirect
+# - /api/health         : Cloud Run health checks
+# - /api/clickup/webhook: external caller (ClickUp), verified separately
+_PUBLIC_EXACT = {'/', '/api/health', '/api/clickup/webhook'}
+_PUBLIC_PREFIXES = ('/auth/', '/static/')
+
+
+@app.before_request
+def require_authenticated_session():
+    """Gate the API behind the same Google session that protects the page.
+    The browser sends the session cookie automatically on same-origin /api calls,
+    so the app itself is unaffected; only anonymous callers are blocked."""
+    path = request.path
+    if path in _PUBLIC_EXACT or path.startswith(_PUBLIC_PREFIXES):
+        return None
+    if path.startswith('/api/') and 'user' not in session:
+        return jsonify({'error': 'Authentication required'}), 401
+    return None
+
 # ===================
 # Configuration
 # ===================
@@ -2420,7 +2442,9 @@ def find_article_by_clickup_task_id(task_id):
         for blob in bucket.list_blobs(prefix=prefix):
             try:
                 article = json.loads(blob.download_as_text())
-                if article.get('clickup_task_id') == task_id:
+                # task id is persisted at data.clickup_task_id; check top-level too
+                stored = (article.get('data', {}) or {}).get('clickup_task_id') or article.get('clickup_task_id')
+                if stored == task_id:
                     return article
             except Exception:
                 continue
