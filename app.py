@@ -369,6 +369,40 @@ Return ONLY the corrected article text. No preamble, no notes, no explanation.
         return article_text
 
 
+def enforce_publication_rules(text: str, publication: str) -> str:
+    """Deterministically enforce publication-specific formatting the model is told
+    to follow but may not always obey. Runs last, so the rule is guaranteed:
+      - Fast Company: subheadings in ALL CAPS
+      - Entrepreneur: no serial (Oxford) comma; no 'Key Takeaways' section
+    """
+    import re
+    if not text:
+        return text
+    pub = (publication or '').lower().replace(' ', '')
+
+    if pub == 'fastcompany':
+        # Uppercase markdown subheadings (## / ###)
+        text = re.sub(
+            r'^(#{2,3}[ \t]+)(.+?)[ \t]*$',
+            lambda m: m.group(1) + m.group(2).upper(),
+            text, flags=re.MULTILINE)
+
+    if pub == 'entrepreneur':
+        # Remove a "Key Takeaways" block: the heading (## or **bold**) plus everything
+        # up to the next markdown heading or end of text.
+        text = re.sub(
+            r'(?ims)^[ \t]*(?:#{1,4}[ \t]*|\*\*[ \t]*)key[ \t]+takeaways\b.*?(?=^[ \t]*#{1,4}[ \t]|\Z)',
+            '', text)
+        # Drop the Oxford comma before a final and/or, but ONLY inside a real list
+        # (two comma-separated items precede the conjunction). This leaves ordinary
+        # compound-sentence commas ("He left, and she stayed") untouched.
+        text = re.sub(
+            r'([^,\n.!?]+,[ \t]+[^,\n.!?]+),[ \t]+(and|or)\b',
+            r'\1 \2', text, flags=re.IGNORECASE)
+
+    return text.strip()
+
+
 def get_google_docs_service():
     """Get Google Docs API service"""
     from google.oauth2 import service_account
@@ -1033,6 +1067,8 @@ def generate_article():
         article_content = audit_article_voice(client, article_content, publication)
         # Deterministic backstop for any remaining LLM artifacts
         article_content = sanitize_llm_output(article_content)
+        # Guarantee publication-specific rules (ALL-CAPS subheads, no Oxford comma, etc.)
+        article_content = enforce_publication_rules(article_content, publication)
 
         # Count words
         word_count = len(article_content.split())
@@ -1093,6 +1129,7 @@ def rewrite_article():
 
         rewritten = audit_article_voice(client, response.content[0].text, publication)
         rewritten = sanitize_llm_output(rewritten)
+        rewritten = enforce_publication_rules(rewritten, publication)
 
         return jsonify({
             'success': True,
