@@ -182,11 +182,11 @@ TONE: {', '.join(style_guide.get('tone', {}).get('primary', ['professional']))}"
     if examples:
         system_prompt += f"""
 
-REAL PUBLISHED EXAMPLES (PRIMARY REFERENCE FOR TONE, VOICE, AND STRUCTURE — match these closely):
+STYLE GUIDANCE, REAL PUBLISHED EXAMPLES (use these ONLY to learn Dustin's voice, tone, rhythm, and structure. Never copy their punctuation, vocabulary, sentences, or exact patterns):
 
-These are real articles that have been published. They are the ground truth for how Dustin sounds in this publication. Study the rhythm, sentence length variety, specificity, and how he opens and closes pieces. Match this voice.
+These are real published articles. Use them to learn HOW Dustin sounds: his sentence-length variety, specificity, and how he opens and closes a piece. Do not reuse their sentences, and do not adopt their word choices.
 
-NOTE: If any example contains em dashes, banned words, or AI-style phrases, DO NOT mimic those specific tokens — the hard rules below override any stylistic choices in the examples. The examples teach voice and structure, not punctuation or vocabulary.
+IMPORTANT: The hard rules below always win. If an example uses an em dash, a banned word, or an AI-style phrase, you must NOT reproduce it. The examples teach voice and structure only, not punctuation or vocabulary. Follow the rules, and use the examples as style guidance.
 
 {examples}"""
 
@@ -195,7 +195,7 @@ NOTE: If any example contains em dashes, banned words, or AI-style phrases, DO N
 BRAND EDITORIAL RULES (follow these strictly for all writing):
 {brand_guide}
 
-ANTI-AI WRITING RULES (HARD BANS — these override EVERYTHING, including the examples above):
+ANTI-AI WRITING RULES (HARD BANS. These override EVERYTHING, including the examples above):
 - NEVER use em dashes anywhere. Use commas, periods, colons, or parentheses instead. Even if an example above uses them, you must not.
 - BANNED WORDS/PHRASES: "delve", "landscape", "navigate" (as metaphor), "leverage", "utilize", "pivotal", "crucial", "moreover", "furthermore", "additionally", "indeed", "multifaceted", "tapestry", "unlock potential", "paradigm", "synergy", "holistic", "seamless", "robust", "it's worth noting", "in today's rapidly evolving/changing", "foster", "facilitate", "commences", "harness", "realm", "cutting-edge", "innovative", "comprehensive", "interesting development", "unique situation", "various factors", "It is important to"
 - NEVER start paragraphs with "In today's..." or "In an era of..."
