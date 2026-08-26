@@ -1293,6 +1293,26 @@ def complete_project():
         draft['completed_at'] = datetime.now().isoformat()
         draft['completed_by'] = user_email
 
+        # ClickUp backstop: the New Content task is normally created at the draft
+        # export (page 5), but that step is skippable in the UI. Every completed
+        # article must end up with a task, so create any missing one here. A
+        # ClickUp failure never blocks completion - it is surfaced as a warning.
+        draft_data = draft.get('data', {}) or {}
+        clickup_task_created = None
+        clickup_warning = None
+        if not (draft_data.get('clickup_task_id') or draft.get('clickup_task_id')):
+            headline = (draft_data.get('topic') or {}).get('headline')
+            publication = draft.get('publication')
+            if headline and publication and draft_data.get('article'):
+                task_id = create_clickup_task(headline, publication, draft_data.get('doc_url'))
+                if task_id:
+                    draft_data['clickup_task_id'] = task_id
+                    draft['data'] = draft_data
+                    clickup_task_created = task_id
+                else:
+                    clickup_warning = ('ClickUp task could NOT be created. Open '
+                                       '/api/clickup/backfill?confirm=true to retry.')
+
         # Write to completed/ prefix
         dest_blob = bucket.blob(f"completed/{draft_id}.json")
         dest_blob.upload_from_string(
@@ -1306,7 +1326,9 @@ def complete_project():
         return jsonify({
             'success': True,
             'message': 'Project completed successfully',
-            'draft_id': draft_id
+            'draft_id': draft_id,
+            'clickup_task_created': clickup_task_created,
+            'clickup_warning': clickup_warning
         })
 
     except Exception as e:

@@ -2442,6 +2442,13 @@
             });
 
             if (result.success) {
+                // Server-side backstop may have created the missing ClickUp task
+                if (result.clickup_task_created) {
+                    state.clickupTaskId = result.clickup_task_created;
+                }
+                if (result.clickup_warning) {
+                    alert('⚠️ ' + result.clickup_warning);
+                }
                 document.getElementById('congratsModal').classList.add('active');
             } else {
                 alert('Error completing project: ' + (result.error || 'Unknown error'));
