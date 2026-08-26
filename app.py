@@ -245,13 +245,40 @@ def get_anthropic_client():
     from anthropic import Anthropic
     return Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
 
-def get_perplexity_client():
-    """Get Perplexity client (uses OpenAI SDK)"""
-    from openai import OpenAI
-    return OpenAI(
-        api_key=os.environ.get('PERPLEXITY_API_KEY'),
-        base_url="https://api.perplexity.ai"
+def perplexity_agent_search(query):
+    """Run a research query through Perplexity's Agent API and return the answer text.
+
+    The legacy /chat/completions endpoint (model "sonar") is retired on
+    2026-09-27 and already fails intermittently; the Agent API's "fast"
+    preset is its designated replacement.
+    """
+    api_key = os.environ.get('PERPLEXITY_API_KEY')
+    if not api_key:
+        raise RuntimeError('PERPLEXITY_API_KEY not configured')
+
+    resp = http_requests.post(
+        'https://api.perplexity.ai/v1/agent',
+        headers={'Authorization': f'Bearer {api_key}'},
+        json={'preset': 'fast', 'input': query},
+        timeout=120,
     )
+    if not resp.ok:
+        raise RuntimeError(f'Perplexity Agent API {resp.status_code}: {resp.text[:300]}')
+    payload = resp.json()
+
+    # SDKs expose output_text as a convenience; the raw JSON may only have
+    # the output array of typed items, so fall back to walking it.
+    text = payload.get('output_text')
+    if not text:
+        parts = []
+        for item in payload.get('output', []) or []:
+            for chunk in item.get('content', []) or []:
+                if chunk.get('type') == 'output_text' and chunk.get('text'):
+                    parts.append(chunk['text'])
+        text = '\n'.join(parts)
+    if not text:
+        raise RuntimeError(f'Perplexity Agent API returned no text (id={payload.get("id")})')
+    return text
 
 def sanitize_llm_output(text: str) -> str:
     """Post-process generated text to remove common LLM writing artifacts"""
@@ -576,10 +603,9 @@ def research_topics():
 
     try:
         # Use Perplexity for research
-        client = get_perplexity_client()
-
-        # Build research query
         query = f"""
+        You are a business trend researcher providing current, timely topics for thought leadership articles.
+
         Find current business and leadership trends, news, and topics for {month} {year} that would be relevant for a thought leadership article.
         Focus on:
         - Business strategy and leadership
@@ -591,16 +617,7 @@ def research_topics():
         Provide 5-7 trending topics with brief descriptions of why they're relevant right now.
         """
 
-        response = client.chat.completions.create(
-            model="sonar",
-            messages=[
-                {"role": "system", "content": "You are a business trend researcher. Provide current, timely topics for thought leadership articles."},
-                {"role": "user", "content": query}
-            ],
-            max_tokens=1500
-        )
-
-        research_results = response.choices[0].message.content
+        research_results = perplexity_agent_search(query)
 
         return jsonify({
             'success': True,
@@ -611,6 +628,11 @@ def research_topics():
         })
 
     except Exception as e:
+        # Log the full error server-side; this previously failed silently
+        # (the message only went back to the browser and was discarded there)
+        import traceback
+        print(f"[RESEARCH] Perplexity research failed: {e}")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/generate-topics', methods=['POST'])

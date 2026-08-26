@@ -858,6 +858,12 @@
             border: 1px solid #b8daff;
         }
 
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
         /* Transcription Box */
         .transcription-box {
             background: var(--light);
@@ -1577,6 +1583,8 @@
                         <div class="spinner"></div>
                         <p>Researching trends and generating topics...</p>
                     </div>
+
+                    <div id="researchNotice" class="alert alert-warning" style="display: none;"></div>
 
                     <div id="topicsContainer" style="display: none;">
                         <h3>Generated Topic Ideas</h3>
@@ -2629,6 +2637,8 @@
             document.getElementById('topicsLoading').style.display = 'block';
             document.getElementById('topicsContainer').style.display = 'none';
 
+            document.getElementById('researchNotice').style.display = 'none';
+
             // Research
             const researchResult = await apiCall('/research-topics', 'POST', {
                 publication: state.publication,
@@ -2636,7 +2646,19 @@
                 year: state.year
             });
 
-            state.research = researchResult.research;
+            // A research failure degrades quality but should not block the flow -
+            // topics are still generated, just without current-trends research.
+            // It must be visible though, not silent.
+            if (researchResult.research) {
+                state.research = researchResult.research;
+            } else {
+                state.research = '';
+                const notice = document.getElementById('researchNotice');
+                notice.textContent = '⚠️ Trend research failed (' +
+                    (researchResult.error || 'unknown error') +
+                    '). Topics below were generated without current-trends research.';
+                notice.style.display = 'block';
+            }
 
             // Generate topics
             const topicsResult = await apiCall('/generate-topics', 'POST', {
