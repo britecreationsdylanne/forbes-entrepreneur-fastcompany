@@ -168,10 +168,17 @@ def load_article_examples(publication: str) -> str:
             return f.read()
     return ''
 
-def build_article_system_prompt(publication: str, style_guide: dict, brand_guide: str) -> str:
-    """Build the system prompt for article generation (voice, rules, examples)"""
+def build_article_system_prompt(publication: str, style_guide: dict, brand_guide: str,
+                                include_voice_rules: bool = True) -> str:
+    """Build the system prompt for article generation (voice, rules, examples).
+
+    include_voice_rules=False builds the Phase 1 (content draft) prompt:
+    publication style, brand guide, and real examples only. The anti-AI rules
+    and Dustin's voice DNA are applied by the dedicated Phase 2 voice pass
+    (apply_dustin_voice), so the drafting model isn't juggling both jobs.
+    """
     examples = load_article_examples(publication)
-    voice_dna = load_voice_dna()
+    voice_dna = load_voice_dna() if include_voice_rules else ''
 
     system_prompt = f"""You are a ghostwriter for Dustin Lemick, CEO and founder of BriteCo, an insurtech company providing specialty jewelry and watch insurance. You write thought leadership articles for {style_guide.get('publication_full_name', publication)}.
 
@@ -193,7 +200,10 @@ IMPORTANT: The hard rules below always win. If an example uses an em dash, a ban
     system_prompt += f"""
 
 BRAND EDITORIAL RULES (follow these strictly for all writing):
-{brand_guide}
+{brand_guide}"""
+
+    if include_voice_rules:
+        system_prompt += """
 
 ANTI-AI WRITING RULES (HARD BANS. These override EVERYTHING, including the examples above):
 - NEVER use em dashes anywhere. Use commas, periods, colons, or parentheses instead. Even if an example above uses them, you must not.
@@ -356,44 +366,57 @@ def sanitize_llm_output(text: str) -> str:
     return text
 
 
-def audit_article_voice(client, article_text: str, publication: str) -> str:
-    """Second-pass editor: rewrite the draft to remove AI writing tells per Dustin's
-    hard rules, preserving his ideas, structure, anecdotes, facts, and meaning.
-    Returns the cleaned article, or the original on any failure (never blocks output)."""
+def apply_dustin_voice(client, article_text: str, publication: str) -> str:
+    """Phase 2 of generation: rewrite a content draft so it reads as Dustin's own
+    writing, per voice_dna.md, and strip every AI writing tell. Unlike the old
+    narrow audit, this pass may freely reshape sentences, rhythm, and wording;
+    it must preserve the ideas, argument, structure, subheadings, anecdotes,
+    facts, numbers, names, and approximate word count. Raises on API failure."""
     rules = load_voice_dna()
-    if not article_text or not rules:
+    if not article_text:
         return article_text
+    if not rules:
+        raise RuntimeError('voice_dna.md not found; cannot run the voice pass')
 
-    audit_prompt = f"""You are Dustin Lemick's editor. Below is a draft article ghostwritten in his voice, followed by his hard writing rules. Your only job is to fix every rule violation while preserving his ideas, argument, structure, anecdotes, facts, numbers, and names EXACTLY. Do not add new content, do not invent facts or numbers, do not change the meaning, do not change the word count meaningfully.
+    pub = (publication or '').lower().replace(' ', '')
+    pub_notes = ''
+    if pub == 'entrepreneur':
+        pub_notes = '\n- Do NOT use the serial comma ("apples, oranges and bananas"). Never mention or link to Forbes, Fast Company, or Inc.'
+    header_rule = ('Keep subheadings in ALL CAPS.' if pub == 'fastcompany'
+                   else 'Keep subheadings in sentence case.')
 
-Fix these tells specifically:
-- Remove ALL em dashes from the body (use commas, periods, colons, semicolons, or parentheses).
-- Rewrite every negative-parallelism / reframe construction ("It's not X, it's Y", "Not X. Y.", "While X might seem..., Y is actually...", concession-then-pivot) by deleting everything before the positive claim and keeping only the positive claim.
-- Break up stacked fragments and repeated sentence stems.
-- Replace every banned word and AI setup phrase ("Here's the thing", "The truth is", "Ultimately", etc.) with plain language.
-- Cut rule-of-three triads, puffery, participle-phrase fake depth, meta commentary, and any chat leakage.
-- Make all headers sentence case. Keep the closing forward-facing (no recap, no moralizing).
+    voice_prompt = f"""You are rewriting a drafted article so it reads as if Dustin Lemick, CEO of BriteCo, wrote it himself. The draft below has the right content, argument, and structure. Your job is ONLY voice: make every sentence sound like Dustin per his Voice DNA, and eliminate every AI writing tell.
 
-Return ONLY the corrected article text. No preamble, no notes, no explanation.
+You MAY freely reshape sentences, rhythm, word choice, transitions, and paragraph openings.
+You MUST preserve: the ideas, the argument and its order, the structure and subheadings, all anecdotes, facts, numbers, and names, and the approximate word count (stay within 5% of the draft).
+Do not add new content or invent facts, numbers, or anecdotes.
 
-=== DUSTIN'S HARD RULES ===
+ELIMINATE these tells everywhere:
+- ALL em dashes (use commas, periods, colons, semicolons, or parentheses).
+- Every negative-parallelism / reframe construction ("It's not X, it's Y", "Not X. Y.", "While X might seem..., Y is actually...", concession-then-pivot): delete everything before the positive claim and keep only the positive claim.
+- Stacked fragments and repeated sentence stems.
+- Every banned word and AI setup phrase ("Here's the thing", "The truth is", "Ultimately", etc.) per the Voice DNA below.
+- Rule-of-three triads, puffery, participle-phrase fake depth, meta commentary, chat leakage.
+- {header_rule} Keep the closing forward-facing (no recap, no moralizing).{pub_notes}
+
+Return ONLY the rewritten article text. No preamble, no notes, no explanation.
+
+=== DUSTIN'S VOICE DNA AND HARD RULES ===
 {rules}
 
-=== DRAFT TO FIX ===
+=== DRAFT TO REWRITE ===
 {article_text}"""
 
-    try:
-        response = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=4000,
-            system="You are a meticulous editor who removes AI writing tells without changing the author's meaning, structure, or facts, and without inventing content.",
-            messages=[{"role": "user", "content": audit_prompt}]
-        )
-        cleaned = (response.content[0].text or "").strip()
-        return cleaned or article_text
-    except Exception as e:
-        print(f"[AUDIT] Voice audit failed, using original draft: {e}")
-        return article_text
+    response = client.messages.create(
+        model="claude-opus-4-8",
+        max_tokens=4000,
+        system="You are Dustin Lemick's trusted ghostwriter-editor. You transform drafts into his authentic voice without changing their meaning, structure, or facts, and without inventing content.",
+        messages=[{"role": "user", "content": voice_prompt}]
+    )
+    rewritten = (response.content[0].text or "").strip()
+    if not rewritten:
+        raise RuntimeError('Voice pass returned empty text')
+    return rewritten
 
 
 def enforce_publication_rules(text: str, publication: str) -> str:
@@ -1032,6 +1055,9 @@ def generate_article():
     year = data.get('year', datetime.now().year)
     topic = data.get('topic', {})
     transcription = data.get('transcription', '')
+    talking_points = data.get('talking_points') or []
+    inspiration = data.get('inspiration') or ''
+    research = data.get('research') or ''
 
     try:
         # Load style guide and brand guide
@@ -1041,8 +1067,31 @@ def generate_article():
         # Use Claude for article generation
         client = get_anthropic_client()
 
-        # Build system prompt (voice, rules, examples)
-        system_prompt = build_article_system_prompt(publication, style_guide, brand_guide)
+        # Phase 1 system prompt: publication style, brand guide, and real
+        # examples only. Dustin's voice DNA and the anti-AI rules are applied
+        # by the dedicated Phase 2 voice pass (/api/apply-voice).
+        system_prompt = build_article_system_prompt(publication, style_guide, brand_guide,
+                                                   include_voice_rules=False)
+
+        # Supporting material gathered in earlier steps (transcription stays primary)
+        extra_context = ''
+        if talking_points:
+            points = '\n'.join(
+                f"- {p.get('text', '') if isinstance(p, dict) else p}" for p in talking_points)
+            extra_context += f"""
+
+        TALKING POINTS PREPARED FOR THIS TOPIC (supporting material):
+        {points}"""
+        if inspiration:
+            extra_context += f"""
+
+        INSPIRATION NOTES (angles, hooks, and stats to consider; use judgment):
+        {inspiration}"""
+        if research:
+            extra_context += f"""
+
+        CURRENT TREND RESEARCH FOR {month} {year} (context on what's timely; do not cite as your own facts):
+        {research}"""
 
         # Build user prompt (specific task)
         prompt = f"""Write a thought leadership article for {style_guide.get('publication_full_name', publication)}.
@@ -1051,8 +1100,8 @@ def generate_article():
         Headline: {topic.get('headline', 'Untitled')}
         Angle: {topic.get('angle', '')}
 
-        CEO'S THOUGHTS (from recording transcription):
-        {transcription}
+        CEO'S THOUGHTS (from recording transcription; this is the PRIMARY source for the article's substance):
+        {transcription}{extra_context}
 
         REQUIREMENTS:
         - Word count: {style_guide.get('specifications', {}).get('word_count', {}).get('min', 700)}-{style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words (strict, do not exceed {style_guide.get('specifications', {}).get('word_count', {}).get('max', 800)} words)
@@ -1085,11 +1134,11 @@ def generate_article():
 
         article_content = response.content[0].text
 
-        # Second-pass voice audit: rewrite out AI tells per Dustin's hard rules
-        article_content = audit_article_voice(client, article_content, publication)
-        # Deterministic backstop for any remaining LLM artifacts
+        # Phase 1 returns the content draft; the frontend chains Phase 2
+        # (/api/apply-voice) for Dustin's voice and AI-tell removal. The
+        # deterministic cleanups still run here so the draft shown between
+        # phases (or kept if Phase 2 fails) is never left with artifacts.
         article_content = sanitize_llm_output(article_content)
-        # Guarantee publication-specific rules (ALL-CAPS subheads, no Oxford comma, etc.)
         article_content = enforce_publication_rules(article_content, publication)
 
         # Count words
@@ -1108,6 +1157,36 @@ def generate_article():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/apply-voice', methods=['POST'])
+def apply_voice():
+    """Phase 2 of generation: rewrite a draft in Dustin's voice (voice_dna.md)
+    and strip AI writing tells, then run the deterministic cleanups."""
+    data = request.json
+    publication = data.get('publication')
+    article = data.get('article', '')
+
+    if not article:
+        return jsonify({'success': False, 'error': 'article required'}), 400
+
+    try:
+        client = get_anthropic_client()
+        voiced = apply_dustin_voice(client, article, publication)
+        voiced = sanitize_llm_output(voiced)
+        voiced = enforce_publication_rules(voiced, publication)
+
+        return jsonify({
+            'success': True,
+            'article': voiced,
+            'word_count': len(voiced.split())
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"[VOICE] Voice pass failed: {e}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/rewrite-article', methods=['POST'])
 def rewrite_article():
     """Rewrite/improve an article section"""
@@ -1121,8 +1200,10 @@ def rewrite_article():
         brand_guide = load_brand_guide()
         client = get_anthropic_client()
 
-        # Build system prompt (voice, rules, examples)
-        system_prompt = build_article_system_prompt(publication, style_guide, brand_guide)
+        # Content-only prompt; the frontend chains /api/apply-voice after this
+        # so manual rewrites go through the same Phase 2 voice pass.
+        system_prompt = build_article_system_prompt(publication, style_guide, brand_guide,
+                                                   include_voice_rules=False)
 
         prompt = f"""Rewrite/improve this {publication} article based on these instructions:
 
@@ -1149,8 +1230,8 @@ def rewrite_article():
             ]
         )
 
-        rewritten = audit_article_voice(client, response.content[0].text, publication)
-        rewritten = sanitize_llm_output(rewritten)
+        # Phase 2 (voice) is chained by the frontend via /api/apply-voice
+        rewritten = sanitize_llm_output(response.content[0].text)
         rewritten = enforce_publication_rules(rewritten, publication)
 
         return jsonify({
